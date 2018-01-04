@@ -1,6 +1,8 @@
 package org.ohdsi.webapi.evidence;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Calendar;
@@ -8,6 +10,8 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.ohdsi.webapi.GenerationStatus;
@@ -97,6 +101,23 @@ public class NegativeControlTasklet implements Tasklet {
                 @Override
                 public int[] doInTransaction(final TransactionStatus status) {	
                     log.debug("entering tasklet");
+										log.debug("creating ID for job");
+										Long evidenceJobId = null;
+										String sql = EvidenceService.getEvidenceJobIdSql(task);
+										try {
+											Connection conn = NegativeControlTasklet.this.evidenceJdbcTemplate.getDataSource().getConnection();
+											PreparedStatement ps = conn.prepareStatement(sql, new String[] { "id"});
+											if (ps.executeUpdate() > 0) {
+												ResultSet generatedKeys = ps.getGeneratedKeys();
+												if (generatedKeys != null && generatedKeys.next()) {
+													evidenceJobId = generatedKeys.getLong(1);
+												}
+											}
+											log.debug("evidenceJobId: " + evidenceJobId);
+										} catch (SQLException ex) {
+											Logger.getLogger(NegativeControlTasklet.class.getName()).log(Level.SEVERE, null, ex);
+										}
+										
                     String negativeControlSql = EvidenceService.getNegativeControlSql(task);
                     log.debug("negative control sql to execute: " + negativeControlSql);
                     final List<NegativeControlRecord> recs = NegativeControlTasklet.this.evidenceJdbcTemplate.query(negativeControlSql, new NegativeControlMapper());

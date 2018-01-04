@@ -727,6 +727,17 @@ public class EvidenceService extends AbstractDaoService {
     Source source = getSourceRepository().findBySourceKey(sourceKey);
     return negativeControlRepository.findAllBySourceIdAndConceptId(source.getSourceId(), conceptSetId);
   }
+	
+	public static String getEvidenceJobIdSql(NegativeControl task) {
+    String sql = "INSERT INTO @evidenceSchema.evidence_job SELECT MAX(id) + 1 from @evidenceSchema.evidence_job;";
+    String evidenceSchema = task.getSource().getTableQualifier(SourceDaimon.DaimonType.Evidence);
+    String[] params = new String[]{"evidenceSchema"};
+    String[] values = new String[]{evidenceSchema};
+    sql = SqlRender.renderSql(sql, params, values);
+    sql = SqlTranslate.translateSql(sql, task.getSource().getSourceDialect());
+
+    return sql;
+	}
  /**
   * Obtain the SQL that is used to retrieve the list of negative controls from the database
   * @param task
