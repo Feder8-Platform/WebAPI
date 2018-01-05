@@ -677,7 +677,22 @@ public class EvidenceService extends AbstractDaoService {
   @Consumes(MediaType.APPLICATION_JSON)
 	public String getNegativeControlSql(@PathParam("sourceKey") String sourceKey) throws Exception {
 		Long jobId = new Long(1);
-		return getNegativeControlSqlNEW(sourceKey, jobId);
+		// Refactor to take this as a paramter
+	  Source dbsource = getSourceRepository().findBySourceKey(sourceKey);
+		
+		// Create the task
+		NegativeControl task = new NegativeControl();
+		String outcomeOfInterest = "drug";
+		String[] conceptsOfInterest = {"4344040"};
+		String[] conceptsToExclude = {"0"};
+		String[] conceptsToInclude = {"1186087","19015230","1381504","757688","1314865","715233","950933","1563600","980311","1541079","19008009","19010482","1311078","1304643","1338512","1301125","1151789","1352213","1304850","1542948","1597235","19048493","19097463","1536743","751889","19041065","787787","1512480","19117912","40238188","1112921","1351541","1192218","19024227","1305058","909841","708298","1114220","1522957","785788","1378382","19071160","19049105","753626","42903728","19090761","1584910","836208","1236744","40171288"};
+		
+		task.setSource(dbsource);
+		task.setOutcomeOfInterest(outcomeOfInterest);
+		task.setConceptsOfInterest(conceptsOfInterest);
+		task.setConceptsToInclude(conceptsToInclude);
+		task.setConceptsToExclude(conceptsToExclude);
+		return getNegativeControlSqlNEW(task, jobId);
 	}
 
 /**
@@ -762,23 +777,21 @@ public class EvidenceService extends AbstractDaoService {
     }
     
     String tableQualifier = task.getSource().getTableQualifier(SourceDaimon.DaimonType.Evidence);
-    String conceptIds = JoinArray(task.getConceptIds());
+    String conceptIds = JoinArray(task.getConceptsOfInterest());
     String[] params = new String[]{"tableQualifier", "CONCEPT_IDS", "CONCEPT_SET_ID", "CONCEPT_SET_NAME", "CONCEPT_DOMAIN_ID", "TARGET_DOMAIN_ID", "SOURCE_ID"};
-    String[] values = new String[]{tableQualifier, conceptIds, String.valueOf(task.getConceptSetId()), task.getConceptSetName(), task.getConceptDomainId().toUpperCase(), task.getTargetDomainId().toUpperCase(), String.valueOf(task.getSource().getSourceId())};
+    String[] values = new String[]{tableQualifier, conceptIds, String.valueOf(task.getConceptSetId()), task.getConceptSetName(), task.getConceptDomainId().toUpperCase(), task.getOutcomeOfInterest().toUpperCase(), String.valueOf(task.getSource().getSourceId())};
     sql = SqlRender.renderSql(sql, params, values);
     sql = SqlTranslate.translateSql(sql, "sql server", task.getSource().getSourceDialect());
 
     return sql;
 }
 	
-	public String getNegativeControlSqlNEW(String sourceKey, Long jobId ) {
+	public static String getNegativeControlSqlNEW(NegativeControl task, Long jobId ) {
 		StringBuilder sb = new StringBuilder();
     String resourceRoot = "/resources/evidence/negativecontrols/";
-		
-		// Refactor to take this as a paramter
-	  Source dbsource = getSourceRepository().findBySourceKey(sourceKey);
-	  String tableQualifier = dbsource.getTableQualifier(SourceDaimon.DaimonType.Evidence);
-		
+		Source source = task.getSource();
+	  String evidenceSchema = source.getTableQualifier(SourceDaimon.DaimonType.Evidence);
+				
 		/*
 			################################################################################
 			# CONFIG
@@ -801,10 +814,10 @@ public class EvidenceService extends AbstractDaoService {
 
 		*/
 
-		String outcomeOfInterest = "drug";
-		String conceptsOfInterest = "4344040";
-		String conceptsToExclude = "0";
-		String conceptsToInclude = "1186087,19015230,1381504,757688,1314865,715233,950933,1563600,980311,1541079,19008009,19010482,1311078,1304643,1338512,1301125,1151789,1352213,1304850,1542948,1597235,19048493,19097463,1536743,751889,19041065,787787,1512480,19117912,40238188,1112921,1351541,1192218,19024227,1305058,909841,708298,1114220,1522957,785788,1378382,19071160,19049105,753626,42903728,19090761,1584910,836208,1236744,40171288";
+		String outcomeOfInterest = task.getOutcomeOfInterest();
+		String conceptsOfInterest = JoinArray(task.getConceptsOfInterest());
+		String conceptsToExclude = JoinArray(task.getConceptsToExclude());
+		String conceptsToInclude = JoinArray(task.getConceptsToInclude());
 		// These are qualifiers for other schemas in CEM - verify w/ Erica
 		String vocabularySchema = "vocabulary";
 		String translatedSchema = "translated"; 
@@ -823,15 +836,15 @@ public class EvidenceService extends AbstractDaoService {
 		String summaryData = "#NC_SUMMARY";
 		String summaryOptimizedData = "#NC_SUMMARY_OPTIMIZED";
 		// These are pre-processed tables
-		String conceptUniverseData = tableQualifier + ".NC_LU_CONCEPT_UNIVERSE";
-		String broadConceptsData = tableQualifier + ".NC_LU_BROAD_CONDITIONS";
-		String drugInducedConditionsData = tableQualifier + ".NC_LU_DRUG_INDUCED_CONDITIONS";
-		String pregnancyConditionData = tableQualifier + ".NC_LU_PREGNANCY_CONDITIONS";
+		String conceptUniverseData = evidenceSchema + ".NC_LU_CONCEPT_UNIVERSE";
+		String broadConceptsData = evidenceSchema + ".NC_LU_BROAD_CONDITIONS";
+		String drugInducedConditionsData = evidenceSchema + ".NC_LU_DRUG_INDUCED_CONDITIONS";
+		String pregnancyConditionData = evidenceSchema + ".NC_LU_PREGNANCY_CONDITIONS";
 		// This is the results table
-		String resultsData = tableQualifier + ".NC_RESULTS";
+		String resultsData = evidenceSchema + ".NC_RESULTS";
 	
-		String[] params = new String[]{"tableQualifier", "outcomeOfInterest", "conceptsOfInterest", "vocabulary", "translated", "splicerData"};
-    String[] values = new String[]{tableQualifier, outcomeOfInterest, conceptsOfInterest, vocabularySchema, translatedSchema, splicer};
+		String[] params = new String[]{"outcomeOfInterest", "conceptsOfInterest", "vocabulary", "translated", "splicerData"};
+    String[] values = new String[]{outcomeOfInterest, conceptsOfInterest, vocabularySchema, translatedSchema, splicer};
 		
 		/*
 			################################################################################
@@ -1019,17 +1032,17 @@ public class EvidenceService extends AbstractDaoService {
     String sql = ResourceHelper.GetResourceAsString(resourceRoot + "getNegativeControls.sql");
 
 		
-    String tableQualifier = task.getSource().getTableQualifier(SourceDaimon.DaimonType.Evidence);
+    String evidenceSchema = task.getSource().getTableQualifier(SourceDaimon.DaimonType.Evidence);
     String conceptIds = JoinArray(task.getConceptIds());
-    String[] params = new String[]{"tableQualifier", "CONCEPT_IDS", "CONCEPT_SET_ID", "CONCEPT_SET_NAME", "CONCEPT_DOMAIN_ID", "TARGET_DOMAIN_ID", "SOURCE_ID"};
-    String[] values = new String[]{tableQualifier, conceptIds, String.valueOf(task.getConceptSetId()), task.getConceptSetName(), task.getConceptDomainId().toUpperCase(), task.getTargetDomainId().toUpperCase(), String.valueOf(task.getSource().getSourceId())};
+    String[] params = new String[]{"evidenceSchema", "CONCEPT_IDS", "CONCEPT_SET_ID", "CONCEPT_SET_NAME", "CONCEPT_DOMAIN_ID", "TARGET_DOMAIN_ID", "SOURCE_ID"};
+    String[] values = new String[]{evidenceSchema, conceptIds, String.valueOf(task.getConceptSetId()), task.getConceptSetName(), task.getConceptDomainId().toUpperCase(), task.getTargetDomainId().toUpperCase(), String.valueOf(task.getSource().getSourceId())};
     sql = SqlRender.renderSql(sql, params, values);
     sql = SqlTranslate.translateSql(sql, "sql server", task.getSource().getSourceDialect());
 
     return sql;
 		*/
-		log.debug("OHDSql: \n\t" + sb.toString());
-		sql = SqlTranslate.translateSql(sb.toString(), dbsource.getSourceDialect());
+		//log.debug("OHDSql: \n\t" + sb.toString());
+		sql = SqlTranslate.translateSql(sb.toString(), source.getSourceDialect());
 
 		return sql;
 	}
