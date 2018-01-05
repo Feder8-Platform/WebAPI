@@ -669,6 +669,16 @@ public class EvidenceService extends AbstractDaoService {
 	  
 	  return results;
   }
+	
+	
+  @GET
+  @Path("{sourceKey}/negativecontrols-sql")
+  @Produces(MediaType.TEXT_PLAIN)
+  @Consumes(MediaType.APPLICATION_JSON)
+	public String getNegativeControlSql(@PathParam("sourceKey") String sourceKey) throws Exception {
+		Long jobId = new Long(1);
+		return getNegativeControlSqlNEW(sourceKey, jobId);
+	}
 
 /**
  * Queues up a negative control task, that generates and translates SQL for the
@@ -729,7 +739,8 @@ public class EvidenceService extends AbstractDaoService {
   }
 	
 	public static String getEvidenceJobIdSql(NegativeControl task) {
-    String sql = "INSERT INTO @evidenceSchema.evidence_job SELECT MAX(id) + 1 from @evidenceSchema.evidence_job;";
+    String resourceRoot = "/resources/evidence/negativecontrols/";
+    String sql = ResourceHelper.GetResourceAsString(resourceRoot + "getJobId.sql");
     String evidenceSchema = task.getSource().getTableQualifier(SourceDaimon.DaimonType.Evidence);
     String[] params = new String[]{"evidenceSchema"};
     String[] values = new String[]{evidenceSchema};
@@ -759,6 +770,269 @@ public class EvidenceService extends AbstractDaoService {
 
     return sql;
 }
+	
+	public String getNegativeControlSqlNEW(String sourceKey, Long jobId ) {
+		StringBuilder sb = new StringBuilder();
+    String resourceRoot = "/resources/evidence/negativecontrols/";
+		
+		// Refactor to take this as a paramter
+	  Source dbsource = getSourceRepository().findBySourceKey(sourceKey);
+	  String tableQualifier = dbsource.getTableQualifier(SourceDaimon.DaimonType.Evidence);
+		
+		/*
+			################################################################################
+			# CONFIG
+			################################################################################
+			outcomeOfInterest <- 'drug'
+			conceptsOfInterest <- '4344040'
+			conceptsToExclude <- '0'
+			conceptsToInclude <- '1186087,19015230,1381504,757688,1314865,715233,950933,1563600,980311,1541079,19008009,19010482,1311078,1304643,1338512,1301125,1151789,1352213,1304850,1542948,1597235,19048493,19097463,1536743,751889,19041065,787787,1512480,19117912,40238188,1112921,1351541,1192218,19024227,1305058,909841,708298,1114220,1522957,785788,1378382,19071160,19049105,753626,42903728,19090761,1584910,836208,1236744,40171288'
+		
+		conceptsToExcludeData <- paste0(Sys.getenv("evidence"),".NC_EXCLUDED_CONCEPTS")
+		conceptsToIncludeData <- paste0(Sys.getenv("evidence"),".NC_INCLUDED_CONCEPTS")
+		indicationData <- paste0(Sys.getenv("evidence"),".NC_INDICATIONS")
+		evidenceData <- paste0(Sys.getenv("evidence"),".NC_EVIDENCE")
+		safeConceptData <- paste0(Sys.getenv("evidence"),".NC_SAFE_CONCEPTS")
+		splicerConceptData <- paste0(Sys.getenv("evidence"),".NC_SPLICER_CONCEPTS")
+		faersConceptsData <- paste0(Sys.getenv("evidence"),".NC_FAERS_CONCEPTS")
+		adeSummaryData <- paste0(Sys.getenv("evidence"),".NC_ADE_SUMMARY")
+		summaryData <- paste0(Sys.getenv("evidence"),".NC_SUMMARY")
+		summaryOptimizedData <- paste0(Sys.getenv("evidence"),".NC_SUMMARY_OPTIMIZED")
+
+		*/
+
+		String outcomeOfInterest = "drug";
+		String conceptsOfInterest = "4344040";
+		String conceptsToExclude = "0";
+		String conceptsToInclude = "1186087,19015230,1381504,757688,1314865,715233,950933,1563600,980311,1541079,19008009,19010482,1311078,1304643,1338512,1301125,1151789,1352213,1304850,1542948,1597235,19048493,19097463,1536743,751889,19041065,787787,1512480,19117912,40238188,1112921,1351541,1192218,19024227,1305058,909841,708298,1114220,1522957,785788,1378382,19071160,19049105,753626,42903728,19090761,1584910,836208,1236744,40171288";
+		// These are qualifiers for other schemas in CEM - verify w/ Erica
+		String vocabularySchema = "vocabulary";
+		String translatedSchema = "translated"; 
+	  String faers = translatedSchema + ".AEOLUS";
+		String splicer = translatedSchema + ".SPLICER";
+		String ade = translatedSchema + ".MEDLINE_WINNENBURG";
+		// These are temp tables 
+		String conceptsToExcludeData = "#NC_EXCLUDED_CONCEPTS";
+		String conceptsToIncludeData = "#NC_INCLUDED_CONCEPTS";
+		String indicationData = "#NC_INDICATIONS";
+		String evidenceData = "#NC_EVIDENCE";
+		String safeConceptData = "#NC_SAFE_CONCEPTS";
+		String splicerConceptData = "#NC_SPLICER_CONCEPTS";
+		String faersConceptsData = "#NC_FAERS_CONCEPTS";
+		String adeSummaryData = "#NC_ADE_SUMMARY";
+		String summaryData = "#NC_SUMMARY";
+		String summaryOptimizedData = "#NC_SUMMARY_OPTIMIZED";
+		// These are pre-processed tables
+		String conceptUniverseData = tableQualifier + ".NC_LU_CONCEPT_UNIVERSE";
+		String broadConceptsData = tableQualifier + ".NC_LU_BROAD_CONDITIONS";
+		String drugInducedConditionsData = tableQualifier + ".NC_LU_DRUG_INDUCED_CONDITIONS";
+		String pregnancyConditionData = tableQualifier + ".NC_LU_PREGNANCY_CONDITIONS";
+		// This is the results table
+		String resultsData = tableQualifier + ".NC_RESULTS";
+	
+		String[] params = new String[]{"tableQualifier", "outcomeOfInterest", "conceptsOfInterest", "vocabulary", "translated", "splicerData"};
+    String[] values = new String[]{tableQualifier, outcomeOfInterest, conceptsOfInterest, vocabularySchema, translatedSchema, splicer};
+		
+		/*
+			################################################################################
+			# FIND CONDITIONS OF INTEREST
+			################################################################################
+
+			#SPLICER
+			findSplicerConcepts(conn=conn,
+													storeData=splicerConceptData,
+													splicerData=splicer,
+													sqlFile="splicerConcepts.sql",
+													conceptsOfInterest=conceptsOfInterest,
+													vocabulary=vocabulary,
+													outcomeOfInterest=outcomeOfInterest)
+*/
+		String sql = ResourceHelper.GetResourceAsString(resourceRoot + "splicerConcepts.sql");
+    sql = SqlRender.renderSql(sql, params, values);
+		sql = SqlRender.renderSql(sql, 
+			new String[] {"storeData"}, 
+			new String[] {splicerConceptData});
+		sb.append(sql + "\n\n");
+
+		/*
+			#FIND INDICATIONS
+			findDrugIndications(conn=conn,
+													storeData=indicationData,
+													vocabulary=vocabulary,
+													conceptsOfInterest=conceptsOfInterest,
+													outcomeOfInterest=outcomeOfInterest)
+		*/
+		
+		sql = ResourceHelper.GetResourceAsString(resourceRoot + "findDrugIndications.sql");
+    sql = SqlRender.renderSql(sql, params, values);
+		sql = SqlRender.renderSql(sql, 
+			new String[] {"storeData"}, 
+			new String[] {indicationData});
+		sb.append(sql + "\n\n");
+		
+		/*
+			#USER IDENTIFIED CONCEPTS TO EXCLUDE
+			findConcepts(conn = conn,
+									 storeData = conceptsToExcludeData,
+									 vocabulary=vocabulary,
+									 concepts=conceptsToExclude,
+									 expandConcepts=1)
+		*/
+		
+		sql = ResourceHelper.GetResourceAsString(resourceRoot + "findConcepts.sql");
+    sql = SqlRender.renderSql(sql, params, values);
+		sql = SqlRender.renderSql(sql, 
+			new String[] {"storeData", "concepts"}, 
+			new String[] {conceptsToExcludeData, conceptsToExclude});
+		sb.append(sql + "\n\n");
+		
+		/*
+			#USER IDENTIFIED CONCEPTS TO INCLUDE
+			findConcepts(conn = conn,
+									 storeData = conceptsToIncludeData,
+									 vocabulary=vocabulary,
+									 concepts=conceptsToInclude)
+		*/
+		
+		sql = ResourceHelper.GetResourceAsString(resourceRoot + "findConcepts.sql");
+    sql = SqlRender.renderSql(sql, params, values);
+		sql = SqlRender.renderSql(sql, 
+			new String[] {"storeData", "concepts"}, new
+				String[] {conceptsToIncludeData, conceptsToInclude});
+		sb.append(sql + "\n\n");
+		
+		/*
+			#FAERS
+			findFaersADRs(conn = conn,
+										faersData = faers,
+										storeData = faersConceptsData,
+										vocabulary=vocabulary,
+										conceptsOfInterest=conceptsOfInterest,
+										outcomeOfInterest = outcomeOfInterest)
+		*/
+		
+		sql = ResourceHelper.GetResourceAsString(resourceRoot + "findFaersADRs.sql");
+    sql = SqlRender.renderSql(sql, params, values);
+		sql = SqlRender.renderSql(sql, 
+			new String[] {"storeData", "faersData"}, 
+			new String[] {faersConceptsData, faers});
+		sb.append(sql + "\n\n");
+
+		/*
+			################################################################################
+			# PULL EVIDENCE
+			################################################################################
+			pullEvidence(conn = conn,
+										adeData = ade,
+										storeData = adeSummaryData,
+										vocabulary=vocabulary,
+										conceptsOfInterest=conceptsOfInterest,
+										outcomeOfInterest = outcomeOfInterest,
+										conceptUniverse=conceptUniverseData)
+		*/
+
+		sql = ResourceHelper.GetResourceAsString(resourceRoot + "pullEvidence.sql");
+    sql = SqlRender.renderSql(sql, params, values);
+		sql = SqlRender.renderSql(sql, 
+			new String[] {"storeData", "adeData", "conceptUniverseData"}, 
+			new String[] {adeSummaryData, ade, conceptUniverseData});
+		sb.append(sql + "\n\n");
+		
+		/*
+			################################################################################
+			# SUMMARIZE EVIDENCE
+			################################################################################
+			summarizeEvidence(conn=conn,
+												outcomeOfInterest=outcomeOfInterest,
+												conceptUniverseData=conceptUniverseData,
+												storeData=summaryData,
+												adeSummaryData=adeSummaryData,
+												indicationData=indicationData,
+												broadConceptsData=broadConceptsData,
+												drugInducedConditionsData=drugInducedConditionsData,
+												pregnancyConditionData=pregnancyConditionData,
+												splicerConceptData=splicerConceptData,
+												faersConceptsData=faersConceptsData,
+												conceptsToExclude=conceptsToExcludeData,
+												conceptsToInclude=conceptsToIncludeData)
+		*/
+		
+		sql = ResourceHelper.GetResourceAsString(resourceRoot + "summarizeEvidence.sql");
+    sql = SqlRender.renderSql(sql, params, values);
+		sql = SqlRender.renderSql(sql, 
+			new String[] {"storeData", "conceptUniverseData", "adeSummaryData", "indicationData", "broadConceptsData", "drugInducedConditionsData", "pregnancyConditionData", "splicerConceptData", "faersConceptsData", "conceptsToExclude", "conceptsToInclude"}, 
+			new String[] {summaryData, conceptUniverseData, adeSummaryData, indicationData, broadConceptsData, drugInducedConditionsData, pregnancyConditionData, splicerConceptData, faersConceptsData, conceptsToExcludeData, conceptsToIncludeData});
+		sb.append(sql + "\n\n");
+		
+		/*
+
+			################################################################################
+			# OPTIMIZE
+			################################################################################
+			optimizeEvidence(conn=conn,
+											 outcomeOfInterest=outcomeOfInterest,
+											 storeData=summaryOptimizedData,
+											 vocabulary=vocabulary,
+											 summaryData=summaryData)
+
+			*/
+		
+		sql = ResourceHelper.GetResourceAsString(resourceRoot + "optimizeEvidence.sql");
+    sql = SqlRender.renderSql(sql, params, values);
+		sql = SqlRender.renderSql(sql, 
+			new String[] {"storeData", "summaryData"}, 
+			new String[] {summaryOptimizedData, summaryData});
+		sb.append(sql + "\n\n");
+
+	/*
+		################################################################################
+		# EXPORT
+		################################################################################
+		export(conn = conn,
+					 file=fileName,
+					 vocabulary = vocabulary,
+					 outcomeOfInterest=outcomeOfInterest,
+					 conceptsOfInterest = conceptsOfInterest,
+					 conceptsToExcludeData = conceptsToExcludeData,
+					 conceptsToIncludeData = conceptsToIncludeData,
+					 summaryData = summaryData,
+					 summaryOptimizedData = summaryOptimizedData,
+					 adeSummaryData = adeSummaryData)
+
+		*/		
+		
+		sql = ResourceHelper.GetResourceAsString(resourceRoot + "deleteJobResults.sql");
+    sql = SqlRender.renderSql(sql, params, values);
+		sql = SqlRender.renderSql(sql, 
+			new String[] {"resultsData", "jobId"}, 
+			new String[] {resultsData, Long.toString(jobId)});
+		sb.append(sql + "\n\n");
+		
+		sql = ResourceHelper.GetResourceAsString(resourceRoot + "exportNegativeControls.sql");
+    sql = SqlRender.renderSql(sql, params, values);
+		sql = SqlRender.renderSql(sql, 
+			new String[] {"resultsData", "jobId", "summaryOptimizedData", "summaryData"}, 
+			new String[] {resultsData, Long.toString(jobId), summaryOptimizedData, summaryData});
+		sb.append(sql + "\n\n");
+		
+		/*
+    String sql = ResourceHelper.GetResourceAsString(resourceRoot + "getNegativeControls.sql");
+
+		
+    String tableQualifier = task.getSource().getTableQualifier(SourceDaimon.DaimonType.Evidence);
+    String conceptIds = JoinArray(task.getConceptIds());
+    String[] params = new String[]{"tableQualifier", "CONCEPT_IDS", "CONCEPT_SET_ID", "CONCEPT_SET_NAME", "CONCEPT_DOMAIN_ID", "TARGET_DOMAIN_ID", "SOURCE_ID"};
+    String[] values = new String[]{tableQualifier, conceptIds, String.valueOf(task.getConceptSetId()), task.getConceptSetName(), task.getConceptDomainId().toUpperCase(), task.getTargetDomainId().toUpperCase(), String.valueOf(task.getSource().getSourceId())};
+    sql = SqlRender.renderSql(sql, params, values);
+    sql = SqlTranslate.translateSql(sql, "sql server", task.getSource().getSourceDialect());
+
+    return sql;
+		*/
+		log.debug("OHDSql: \n\t" + sb.toString());
+		sql = SqlTranslate.translateSql(sb.toString(), dbsource.getSourceDialect());
+
+		return sql;
+	}
 
   public static String getNegativeControlDeleteStatementSql(NegativeControl task){
     String sql = ResourceHelper.GetResourceAsString("/resources/evidence/sql/deleteNegativeControls.sql");  
