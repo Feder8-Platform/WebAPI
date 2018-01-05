@@ -47,10 +47,10 @@ import org.ohdsi.webapi.evidence.Evidence;
 import org.ohdsi.webapi.evidence.LinkoutData;
 import org.ohdsi.webapi.evidence.SpontaneousReport;
 import org.ohdsi.webapi.evidence.EvidenceSearch;
-import org.ohdsi.webapi.evidence.NegativeControl;
-import org.ohdsi.webapi.evidence.NegativeControlRecord;
-import org.ohdsi.webapi.evidence.NegativeControlRepository;
-import org.ohdsi.webapi.evidence.NegativeControlTasklet;
+import org.ohdsi.webapi.evidence.negativecontrols.NegativeControlTaskParameters;
+import org.ohdsi.webapi.evidence.negativecontrols.NegativeControlRecord;
+import org.ohdsi.webapi.evidence.negativecontrols.NegativeControlRepository;
+import org.ohdsi.webapi.evidence.negativecontrols.NegativeControlTasklet;
 import org.ohdsi.webapi.job.JobExecutionResource;
 import org.ohdsi.webapi.job.JobTemplate;
 import org.ohdsi.webapi.source.Source;
@@ -681,7 +681,7 @@ public class EvidenceService extends AbstractDaoService {
 	  Source dbsource = getSourceRepository().findBySourceKey(sourceKey);
 		
 		// Create the task
-		NegativeControl task = new NegativeControl();
+		NegativeControlTaskParameters task = new NegativeControlTaskParameters();
 		String outcomeOfInterest = "drug";
 		String[] conceptsOfInterest = {"4344040"};
 		String[] conceptsToExclude = {"0"};
@@ -707,7 +707,7 @@ public class EvidenceService extends AbstractDaoService {
   @Path("{sourceKey}/negativecontrols")
   @Produces(MediaType.APPLICATION_JSON)
   @Consumes(MediaType.APPLICATION_JSON)
-  public JobExecutionResource queueNegativeControlsJob(@PathParam("sourceKey") String sourceKey, NegativeControl task) throws Exception {
+  public JobExecutionResource queueNegativeControlsJob(@PathParam("sourceKey") String sourceKey, NegativeControlTaskParameters task) throws Exception {
         if (task == null) {
                 return null;
         }
@@ -753,7 +753,7 @@ public class EvidenceService extends AbstractDaoService {
     return negativeControlRepository.findAllBySourceIdAndConceptId(source.getSourceId(), conceptSetId);
   }
 	
-	public static String getEvidenceJobIdSql(NegativeControl task) {
+	public static String getEvidenceJobIdSql(NegativeControlTaskParameters task) {
     String resourceRoot = "/resources/evidence/negativecontrols/";
     String sql = ResourceHelper.GetResourceAsString(resourceRoot + "getJobId.sql");
     String evidenceSchema = task.getSource().getTableQualifier(SourceDaimon.DaimonType.Evidence);
@@ -769,7 +769,7 @@ public class EvidenceService extends AbstractDaoService {
   * @param task
   * @return A sql statement
   */
-  public static String getNegativeControlSql(NegativeControl task) {
+  public static String getNegativeControlSql(NegativeControlTaskParameters task) {
     String resourceRoot = "/resources/evidence/sql/";
     String sql = ResourceHelper.GetResourceAsString(resourceRoot + "getNegativeControls.sql");
     if (task.getSource().getSourceDialect().equals("sql server")) {
@@ -786,7 +786,7 @@ public class EvidenceService extends AbstractDaoService {
     return sql;
 }
 	
-	public static String getNegativeControlSqlNEW(NegativeControl task, Long jobId ) {
+	public static String getNegativeControlSqlNEW(NegativeControlTaskParameters task, Long jobId ) {
 		StringBuilder sb = new StringBuilder();
     String resourceRoot = "/resources/evidence/negativecontrols/";
 		Source source = task.getSource();
@@ -814,7 +814,7 @@ public class EvidenceService extends AbstractDaoService {
 
 		*/
 
-		String outcomeOfInterest = task.getOutcomeOfInterest();
+		String outcomeOfInterest = task.getOutcomeOfInterest().toLowerCase();
 		String conceptsOfInterest = JoinArray(task.getConceptsOfInterest());
 		String conceptsToExclude = JoinArray(task.getConceptsToExclude());
 		String conceptsToInclude = JoinArray(task.getConceptsToInclude());
@@ -1047,7 +1047,7 @@ public class EvidenceService extends AbstractDaoService {
 		return sql;
 	}
 
-  public static String getNegativeControlDeleteStatementSql(NegativeControl task){
+  public static String getNegativeControlDeleteStatementSql(NegativeControlTaskParameters task){
     String sql = ResourceHelper.GetResourceAsString("/resources/evidence/sql/deleteNegativeControls.sql");  
     sql = SqlRender.renderSql(sql, new String[] { "ohdsiSchema" },  new String[] { task.getOhdsiSchema() });
     sql = SqlTranslate.translateSql(sql, "sql server", task.getSourceDialect());
@@ -1055,13 +1055,25 @@ public class EvidenceService extends AbstractDaoService {
     return sql;            
 }
 
-  public static String getNegativeControlInsertStatementSql(NegativeControl task){
-    String sql = ResourceHelper.GetResourceAsString("/resources/evidence/sql/insertNegativeControls.sql");
+  public static String getNegativeControlInsertStatementSql(NegativeControlTaskParameters task){
+    String sql = ResourceHelper.GetResourceAsString("/resources/evidence/negativecontrols/insertNegativeControls.sql");
     sql = SqlRender.renderSql(sql, new String[] { "ohdsiSchema" },  new String[] { task.getOhdsiSchema() });
     sql = SqlTranslate.translateSql(sql, "sql server", task.getSourceDialect());
 
     return sql;            
 }
+	
+	public static String getNegativeControlsFromEvidenceSource(NegativeControlTaskParameters task, Long jobId) {
+    String resourceRoot = "/resources/evidence/negativecontrols/";
+		String sql = ResourceHelper.GetResourceAsString(resourceRoot + "getNegativeControls.sql");
+		String evidenceSchema = task.getSource().getTableQualifier(SourceDaimon.DaimonType.Evidence);
+    String[] params = new String[]{"CONCEPT_SET_ID", "CONCEPT_SET_NAME", "outcomeOfInterest", "SOURCE_ID", "evidenceSchema", "jobId"};
+    String[] values = new String[]{String.valueOf(task.getConceptSetId()), task.getConceptSetName(), task.getOutcomeOfInterest().toUpperCase(), String.valueOf(task.getSource().getSourceId()), evidenceSchema, Long.toString(jobId)};
+    sql = SqlRender.renderSql(sql, params, values);
+
+    return sql;
+		
+	}
 
   //parse ADRAnnotation linkouts
   private EvidenceDetails getADRlinkout(JSONArray lineItems,int j) throws JSONException {

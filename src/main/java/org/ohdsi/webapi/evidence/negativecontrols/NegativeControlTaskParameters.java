@@ -1,4 +1,4 @@
-package org.ohdsi.webapi.evidence;
+package org.ohdsi.webapi.evidence.negativecontrols;
 
 import java.util.List;
 
@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.ohdsi.webapi.source.Source;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-public class NegativeControl {
+public class NegativeControlTaskParameters {
         private String jobName;
 
 	private Source source;
