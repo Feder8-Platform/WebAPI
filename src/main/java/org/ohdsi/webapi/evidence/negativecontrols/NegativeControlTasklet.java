@@ -158,11 +158,13 @@ public class NegativeControlTasklet implements Tasklet {
                             ps.setInt(13, ncr.getParentPmidCount());
                             ps.setInt(14, ncr.getAncestorPmidCount());
                             ps.setInt(15, ncr.getIndication());
-                            ps.setInt(16, ncr.getDrugInduced());
-                            ps.setInt(17, ncr.getSplicer());
-                            ps.setInt(18, ncr.getFaers());
-                            ps.setInt(19, ncr.getUserExcluded());
-                            ps.setInt(20, ncr.getUserIncluded());
+														ps.setInt(16, ncr.getTooBroad());
+                            ps.setInt(17, ncr.getDrugInduced());
+														ps.setInt(18, ncr.getPregnancy());
+                            ps.setInt(19, ncr.getSplicer());
+                            ps.setInt(20, ncr.getFaers());
+                            ps.setInt(21, ncr.getUserExcluded());
+                            ps.setInt(22, ncr.getUserIncluded());
                         }
 
                         @Override

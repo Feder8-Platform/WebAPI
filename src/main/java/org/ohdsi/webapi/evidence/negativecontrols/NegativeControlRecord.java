@@ -72,9 +72,15 @@ public class NegativeControlRecord implements Serializable {
 
     @Column(name = "indication")
     private int indication;
+		
+		@Column(name = "too_broad")
+		private int tooBroad;
 
     @Column(name = "drug_induced")
     private int drugInduced;
+		
+    @Column(name = "pregnancy")
+    private int pregnancy;
 
     @Column(name = "splicer")
     private int splicer;
@@ -380,6 +386,34 @@ public class NegativeControlRecord implements Serializable {
 	 */
 	public void setUserIncluded(int userIncluded) {
 		this.userIncluded = userIncluded;
+	}
+
+	/**
+	 * @return the tooBroad
+	 */
+	public int getTooBroad() {
+		return tooBroad;
+	}
+
+	/**
+	 * @param tooBroad the tooBroad to set
+	 */
+	public void setTooBroad(int tooBroad) {
+		this.tooBroad = tooBroad;
+	}
+
+	/**
+	 * @return the pregnancy
+	 */
+	public int getPregnancy() {
+		return pregnancy;
+	}
+
+	/**
+	 * @param pregnancy the pregnancy to set
+	 */
+	public void setPregnancy(int pregnancy) {
+		this.pregnancy = pregnancy;
 	}
 
 

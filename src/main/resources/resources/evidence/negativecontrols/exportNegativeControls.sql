@@ -10,7 +10,9 @@ INSERT INTO @resultsData (
 	parent_pmid_count, 
 	ancestor_pmid_count, 
 	indication, 
+	too_broad,
 	drug_induced, 
+	pregnancy,
 	splicer, 
 	faers, 
 	user_excluded, 
@@ -28,7 +30,9 @@ select
 	d.parent_pmid_count, 
 	d.ancestor_pmid_count, 
 	d.indication, 
-	d.drug_induced, 
+	d.too_broad,
+	d.drug_induced,
+	d.pregnancy,
 	d.splicer, 
 	d.faers, 
 	d.user_excluded, 
@@ -36,7 +40,7 @@ select
 FROM @summaryData d
   LEFT OUTER JOIN @summaryOptimizedData o
     ON d.OUTCOME_OF_INTEREST_CONCEPT_ID = o.OUTCOME_OF_INTEREST_CONCEPT_ID
-{@outcomeOfInterest=='condition'}?{
+{@outcomeOfInterest=='drug'}?{
   WHERE d.OUTCOME_OF_INTEREST_CONCEPT_ID IN (
     SELECT CONCEPT_ID FROM @vocabulary.CONCEPT WHERE DOMAIN_ID = 'Drug' AND CONCEPT_CLASS_ID = 'Ingredient'
   )

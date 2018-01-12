@@ -17,7 +17,7 @@ FROM (
 		a.UNIQUE_IDENTIFIER,
 		a.UNIQUE_IDENTIFIER_TYPE,
 		a.PUBLICATION_TYPE
-	FROM @conceptUniverseData  u
+	FROM @conceptUniverseData u
 		JOIN @vocabulary.CONCEPT_ANCESTOR ca
 			ON ca.DESCENDANT_CONCEPT_ID = u.CONCEPT_ID
 		JOIN @adeData a
@@ -59,7 +59,7 @@ FROM (
 		a.UNIQUE_IDENTIFIER,
 		a.UNIQUE_IDENTIFIER_TYPE,
 		a.PUBLICATION_TYPE
-	FROM @conceptUniverseData  u
+	FROM @conceptUniverseData u
 		JOIN @adeData a
 		  {@outcomeOfInterest == 'condition'}?{
 			  ON a.CONCEPT_ID_2 = u.CONCEPT_ID
@@ -97,7 +97,7 @@ FROM (
 		a.UNIQUE_IDENTIFIER,
 		a.UNIQUE_IDENTIFIER_TYPE,
 		a.PUBLICATION_TYPE
-	FROM @conceptUniverseData  u
+	FROM @conceptUniverseData u
 		JOIN @vocabulary.CONCEPT_RELATIONSHIP cr
 			{@outcomeOfInterest == 'condition'}?{
   		  ON cr.CONCEPT_ID_2 = u.CONCEPT_ID
@@ -145,7 +145,7 @@ FROM (
 		a.UNIQUE_IDENTIFIER,
 		a.UNIQUE_IDENTIFIER_TYPE,
 		a.PUBLICATION_TYPE
-	FROM @conceptUniverseData  u
+	FROM @conceptUniverseData u
 		JOIN @vocabulary.CONCEPT_ANCESTOR ca
 			ON ca.ANCESTOR_CONCEPT_ID = u.CONCEPT_ID
 		JOIN @adeData a

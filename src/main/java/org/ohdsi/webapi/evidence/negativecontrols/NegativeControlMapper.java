@@ -34,7 +34,9 @@ public class NegativeControlMapper implements RowMapper<NegativeControlRecord> {
 		record.setParentPmidCount(rs.getInt("PARENT_PMID_COUNT"));
 		record.setAncestorPmidCount(rs.getInt("ANCESTOR_PMID_COUNT"));
 		record.setIndication(rs.getInt("INDICATION"));
+		record.setTooBroad(rs.getInt("TOO_BROAD"));
 		record.setDrugInduced(rs.getInt("DRUG_INDUCED"));
+		record.setPregnancy(rs.getInt("PREGNANCY"));
 		record.setSplicer(rs.getInt("SPLICER"));
 		record.setFaers(rs.getInt("FAERS"));
 		record.setUserExcluded(rs.getInt("USER_EXCLUDED"));

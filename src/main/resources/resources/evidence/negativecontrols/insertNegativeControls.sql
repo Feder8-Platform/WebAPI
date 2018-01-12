@@ -14,13 +14,17 @@ INSERT INTO @ohdsiSchema.CONCEPT_SET_NEGATIVE_CONTROLS
            ,parent_pmid_count
            ,ancestor_pmid_count
            ,indication
+					 ,too_broad
            ,drug_induced
+           ,pregnancy					
            ,splicer
            ,faers
            ,user_excluded
            ,user_included)
      VALUES
            (?
+					 ,?
+           ,?
 					 ,?
            ,?
            ,?

@@ -825,6 +825,7 @@ public class EvidenceService extends AbstractDaoService {
 		String splicer = translatedSchema + ".SPLICER";
 		String ade = translatedSchema + ".MEDLINE_WINNENBURG";
 		// These are temp tables 
+		String conceptUniverseData = "#NC_CONCEPT_UNIVERSE";
 		String conceptsToExcludeData = "#NC_EXCLUDED_CONCEPTS";
 		String conceptsToIncludeData = "#NC_INCLUDED_CONCEPTS";
 		String indicationData = "#NC_INDICATIONS";
@@ -836,7 +837,7 @@ public class EvidenceService extends AbstractDaoService {
 		String summaryData = "#NC_SUMMARY";
 		String summaryOptimizedData = "#NC_SUMMARY_OPTIMIZED";
 		// These are pre-processed tables
-		String conceptUniverseData = evidenceSchema + ".NC_LU_CONCEPT_UNIVERSE";
+		//String conceptUniverseData = evidenceSchema + ".NC_CONCEPT_UNIVERSE";
 		String broadConceptsData = evidenceSchema + ".NC_LU_BROAD_CONDITIONS";
 		String drugInducedConditionsData = evidenceSchema + ".NC_LU_DRUG_INDUCED_CONDITIONS";
 		String pregnancyConditionData = evidenceSchema + ".NC_LU_PREGNANCY_CONDITIONS";
@@ -845,6 +846,18 @@ public class EvidenceService extends AbstractDaoService {
 	
 		String[] params = new String[]{"outcomeOfInterest", "conceptsOfInterest", "vocabulary", "translated", "splicerData"};
     String[] values = new String[]{outcomeOfInterest, conceptsOfInterest, vocabularySchema, translatedSchema, splicer};
+		
+		/*
+			################################################################################
+			# FIND CONCEPT UNIVERSE
+			################################################################################
+		*/
+		String sql = ResourceHelper.GetResourceAsString(resourceRoot + "findConceptUniverse.sql");
+    sql = SqlRender.renderSql(sql, params, values);
+		sql = SqlRender.renderSql(sql, 
+			new String[] {"evidenceSchema", "storeData"}, 
+			new String[] {evidenceSchema, conceptUniverseData});
+		sb.append(sql + "\n\n");
 		
 		/*
 			################################################################################
@@ -860,7 +873,7 @@ public class EvidenceService extends AbstractDaoService {
 													vocabulary=vocabulary,
 													outcomeOfInterest=outcomeOfInterest)
 */
-		String sql = ResourceHelper.GetResourceAsString(resourceRoot + "splicerConcepts.sql");
+		sql = ResourceHelper.GetResourceAsString(resourceRoot + "splicerConcepts.sql");
     sql = SqlRender.renderSql(sql, params, values);
 		sql = SqlRender.renderSql(sql, 
 			new String[] {"storeData"}, 
