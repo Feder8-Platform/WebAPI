@@ -1,5 +1,6 @@
 package org.ohdsi.webapi.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collection;
 import java.util.Date;
 import java.util.ArrayList;
@@ -8,6 +9,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.Arrays;
 import javax.ws.rs.Consumes;
 
 import javax.ws.rs.GET;
@@ -17,7 +19,10 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import net.minidev.json.JSONStyle;
+import net.minidev.json.JSONValue;
 import org.apache.commons.httpclient.util.URIUtil;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
@@ -684,8 +689,8 @@ public class EvidenceService extends AbstractDaoService {
 		NegativeControlTaskParameters task = new NegativeControlTaskParameters();
 		String outcomeOfInterest = "drug";
 		String[] conceptsOfInterest = {"4344040"};
-		String[] conceptsToExclude = {"0"};
-		String[] conceptsToInclude = {"1186087","19015230","1381504","757688","1314865","715233","950933","1563600","980311","1541079","19008009","19010482","1311078","1304643","1338512","1301125","1151789","1352213","1304850","1542948","1597235","19048493","19097463","1536743","751889","19041065","787787","1512480","19117912","40238188","1112921","1351541","1192218","19024227","1305058","909841","708298","1114220","1522957","785788","1378382","19071160","19049105","753626","42903728","19090761","1584910","836208","1236744","40171288"};
+		String conceptsToExclude = "0";
+		String conceptsToInclude = "1186087,19015230,1381504,757688,1314865,715233,950933,1563600,980311,1541079,19008009,19010482,1311078,1304643,1338512,1301125,1151789,1352213,1304850,1542948,1597235,19048493,19097463,1536743,751889,19041065,787787,1512480,19117912,40238188,1112921,1351541,1192218,19024227,1305058,909841,708298,1114220,1522957,785788,1378382,19071160,19049105,753626,42903728,19090761,1584910,836208,1236744,40171288";
 		
 		task.setSource(dbsource);
 		task.setOutcomeOfInterest(outcomeOfInterest);
@@ -733,6 +738,22 @@ public class EvidenceService extends AbstractDaoService {
         builder.addString("concept_set_name", task.getConceptSetName());
         builder.addString("concept_domain_id", task.getConceptDomainId());
         builder.addString("source_id", ("" + source.getSourceId()));
+				
+				// Create a set of parameters to store with the generation info
+				JSONObject params = new JSONObject();
+				// If/when we want to treat these concepts as lists, this
+				// code will do the trick
+				//JSONArray conceptsToInclude = new JSONArray();
+				//JSONArray conceptsToExclude = new JSONArray();
+				//for(int i = 0; i < task.getConceptsToInclude().length; i++) {
+				//	conceptsToInclude.put(task.getConceptsToInclude()[i]);
+				//}
+				//for(int i = 0; i < task.getConceptsToExclude().length; i++) {
+				//	conceptsToExclude.put(task.getConceptsToExclude()[i]);
+				//}
+				params.put("conceptsToInclude", task.getConceptsToInclude());
+				params.put("conceptsToExclude", task.getConceptsToExclude());
+				builder.addString("params", params.toString());
         
         final String taskString = task.toString();
         final JobParameters jobParameters = builder.toJobParameters();
@@ -816,8 +837,8 @@ public class EvidenceService extends AbstractDaoService {
 
 		String outcomeOfInterest = task.getOutcomeOfInterest().toLowerCase();
 		String conceptsOfInterest = JoinArray(task.getConceptsOfInterest());
-		String conceptsToExclude = JoinArray(task.getConceptsToExclude());
-		String conceptsToInclude = JoinArray(task.getConceptsToInclude());
+		String conceptsToExclude = task.getConceptsToExclude();
+		String conceptsToInclude = task.getConceptsToInclude();
 		// These are qualifiers for other schemas in CEM - verify w/ Erica
 		String vocabularySchema = "vocabulary";
 		String translatedSchema = "translated"; 

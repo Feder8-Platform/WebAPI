@@ -7,31 +7,31 @@ import org.ohdsi.webapi.source.Source;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 public class NegativeControlTaskParameters {
-        private String jobName;
+	private String jobName;
 
 	private Source source;
-        
-        private int conceptSetId;
-        
-        private String conceptSetName;
+
+	private int conceptSetId;
+
+	private String conceptSetName;
 
 	private String sourceKey;
 
-        private String[] conceptsOfInterest;
-				
-				private String[] conceptsToInclude = new String[] { "0" };
-				
-				private String[] conceptsToExclude = new String[] { "0" };
-        
-        private String conceptDomainId;
-        
-        private String outcomeOfInterest;
-        
-        private JdbcTemplate jdbcTemplate;
-        
-        private String sourceDialect;
-        
-        private String ohdsiSchema;
+	private String[] conceptsOfInterest;
+
+	private String conceptsToInclude = "0";
+
+	private String conceptsToExclude = "0";
+
+	private String conceptDomainId;
+
+	private String outcomeOfInterest;
+
+	private JdbcTemplate jdbcTemplate;
+
+	private String sourceDialect;
+
+	private String ohdsiSchema;
         
 	public String getSourceKey() {
 		return sourceKey;
@@ -189,28 +189,28 @@ public class NegativeControlTaskParameters {
 	/**
 	 * @return the conceptsToInclude
 	 */
-	public String[] getConceptsToInclude() {
+	public String getConceptsToInclude() {
 		return conceptsToInclude;
 	}
 
 	/**
 	 * @param conceptsToInclude the conceptsToInclude to set
 	 */
-	public void setConceptsToInclude(String[] conceptsToInclude) {
+	public void setConceptsToInclude(String conceptsToInclude) {
 		this.conceptsToInclude = conceptsToInclude;
 	}
 
 	/**
 	 * @return the conceptsToExclude
 	 */
-	public String[] getConceptsToExclude() {
+	public String getConceptsToExclude() {
 		return conceptsToExclude;
 	}
 
 	/**
 	 * @param conceptsToExclude the conceptsToExclude to set
 	 */
-	public void setConceptsToExclude(String[] conceptsToExclude) {
+	public void setConceptsToExclude(String conceptsToExclude) {
 		this.conceptsToExclude = conceptsToExclude;
 	}
 }

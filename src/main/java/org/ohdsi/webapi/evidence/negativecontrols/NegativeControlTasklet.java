@@ -89,6 +89,7 @@ public class NegativeControlTasklet implements Tasklet {
             info.setSourceId(sourceId);
             info.setGenerationType(ConceptSetGenerationType.NEGATIVE_CONTROLS);
         }
+				info.setParams(jobParams.get("params").toString());
         info.setIsValid(isValid);
         info.setStartTime(startTime);
         info.setStatus(GenerationStatus.RUNNING);
