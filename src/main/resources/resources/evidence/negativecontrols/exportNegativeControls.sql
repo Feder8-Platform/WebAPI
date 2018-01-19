@@ -40,7 +40,7 @@ select
 FROM @summaryData d
   LEFT OUTER JOIN @summaryOptimizedData o
     ON d.OUTCOME_OF_INTEREST_CONCEPT_ID = o.OUTCOME_OF_INTEREST_CONCEPT_ID
-{@outcomeOfInterest=='drug'}?{
+{@outcomeOfInterest == 'drug'}?{
   WHERE d.OUTCOME_OF_INTEREST_CONCEPT_ID IN (
     SELECT CONCEPT_ID FROM @vocabulary.CONCEPT WHERE DOMAIN_ID = 'Drug' AND CONCEPT_CLASS_ID = 'Ingredient'
   )

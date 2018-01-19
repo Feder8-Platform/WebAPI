@@ -17,17 +17,17 @@ FROM (
 		a.UNIQUE_IDENTIFIER,
 		a.UNIQUE_IDENTIFIER_TYPE,
 		a.PUBLICATION_TYPE
-	FROM @conceptUniverseData u
+	FROM @conceptUniverseData  u
 		JOIN @vocabulary.CONCEPT_ANCESTOR ca
-			ON ca.DESCENDANT_CONCEPT_ID = u.CONCEPT_ID
+			ON ca.ANCESTOR_CONCEPT_ID = u.CONCEPT_ID
 		JOIN @adeData a
 			{@outcomeOfInterest == 'condition'}?{
-			  ON a.CONCEPT_ID_2 = ca.ANCESTOR_CONCEPT_ID
-			  AND a.CONCEPT_ID_2 != ca.DESCENDANT_CONCEPT_ID
+			  ON a.CONCEPT_ID_2 = ca.DESCENDANT_CONCEPT_ID
+			  AND a.CONCEPT_ID_2 != ca.ANCESTOR_CONCEPT_ID
 			}
 			{@outcomeOfInterest == 'drug'}?{
-			  ON a.CONCEPT_ID_1 = ca.ANCESTOR_CONCEPT_ID
-			  AND a.CONCEPT_ID_1 != ca.DESCENDANT_CONCEPT_ID
+			  ON a.CONCEPT_ID_1 = ca.DESCENDANT_CONCEPT_ID
+			  AND a.CONCEPT_ID_1 != ca.ANCESTOR_CONCEPT_ID
 			}
 	WHERE
 	  {@outcomeOfInterest == 'condition'}?{CONCEPT_ID_1}
@@ -59,7 +59,7 @@ FROM (
 		a.UNIQUE_IDENTIFIER,
 		a.UNIQUE_IDENTIFIER_TYPE,
 		a.PUBLICATION_TYPE
-	FROM @conceptUniverseData u
+	FROM @conceptUniverseData  u
 		JOIN @adeData a
 		  {@outcomeOfInterest == 'condition'}?{
 			  ON a.CONCEPT_ID_2 = u.CONCEPT_ID
@@ -97,23 +97,18 @@ FROM (
 		a.UNIQUE_IDENTIFIER,
 		a.UNIQUE_IDENTIFIER_TYPE,
 		a.PUBLICATION_TYPE
-	FROM @conceptUniverseData u
+	FROM @conceptUniverseData  u
 		JOIN @vocabulary.CONCEPT_RELATIONSHIP cr
-			{@outcomeOfInterest == 'condition'}?{
-  		  ON cr.CONCEPT_ID_2 = u.CONCEPT_ID
-  		}
-  		{@outcomeOfInterest == 'drug'}?{
   		  ON cr.CONCEPT_ID_1 = u.CONCEPT_ID
-  		}
 			  AND UPPER(cr.RELATIONSHIP_ID) = 'IS A'
 		JOIN @adeData a
 			{@outcomeOfInterest == 'condition'}?{
-  		  ON a.CONCEPT_ID_2 = cr.CONCEPT_ID_1
-			  AND a.CONCEPT_ID_2 != cr.CONCEPT_ID_2
+  		  ON a.CONCEPT_ID_2 = cr.CONCEPT_ID_2
+			  AND a.CONCEPT_ID_2 != cr.CONCEPT_ID_1
   		}
   		{@outcomeOfInterest == 'drug'}?{
-  		  ON a.CONCEPT_ID_1 = cr.CONCEPT_ID_1
-			  AND a.CONCEPT_ID_1 != cr.CONCEPT_ID_2
+  		  ON a.CONCEPT_ID_1 = cr.CONCEPT_ID_2
+			  AND a.CONCEPT_ID_1 != cr.CONCEPT_ID_1
   		}
 	WHERE
 	  {@outcomeOfInterest == 'condition'}?{a.CONCEPT_ID_1}
@@ -145,17 +140,17 @@ FROM (
 		a.UNIQUE_IDENTIFIER,
 		a.UNIQUE_IDENTIFIER_TYPE,
 		a.PUBLICATION_TYPE
-	FROM @conceptUniverseData u
+	FROM @conceptUniverseData  u
 		JOIN @vocabulary.CONCEPT_ANCESTOR ca
-			ON ca.ANCESTOR_CONCEPT_ID = u.CONCEPT_ID
+			ON ca.DESCENDANT_CONCEPT_ID = u.CONCEPT_ID
 		JOIN @adeData a
 			{@outcomeOfInterest == 'condition'}?{
-			  ON a.CONCEPT_ID_2 = ca.DESCENDANT_CONCEPT_ID
-			  AND a.CONCEPT_ID_2 != ca.ANCESTOR_CONCEPT_ID
+			  ON a.CONCEPT_ID_2 = ca.ANCESTOR_CONCEPT_ID
+			  AND a.CONCEPT_ID_2 != ca.DESCENDANT_CONCEPT_ID
 			}
 			{@outcomeOfInterest == 'drug'}?{
-			  ON a.CONCEPT_ID_1 = ca.DESCENDANT_CONCEPT_ID
-		  	AND a.CONCEPT_ID_1 != ca.ANCESTOR_CONCEPT_ID
+			  ON a.CONCEPT_ID_1 = ca.ANCESTOR_CONCEPT_ID
+		  	AND a.CONCEPT_ID_1 != ca.DESCENDANT_CONCEPT_ID
 			}
 	WHERE
 	  {@outcomeOfInterest == 'condition'}?{CONCEPT_ID_1}
