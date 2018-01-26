@@ -45,20 +45,14 @@ import org.ohdsi.sql.SqlRender;
 import org.ohdsi.circe.cohortdefinition.CohortExpression;
 import org.ohdsi.circe.cohortdefinition.CohortExpressionQueryBuilder;
 import org.ohdsi.circe.cohortdefinition.ConceptSet;
-import org.ohdsi.webapi.cohortdefinition.CohortDefinition;
-import org.ohdsi.webapi.cohortdefinition.CohortDefinitionDetails;
-import org.ohdsi.webapi.cohortdefinition.CohortDefinitionRepository;
-import org.ohdsi.webapi.cohortdefinition.CohortGenerationInfo;
-import org.ohdsi.webapi.cohortdefinition.ExpressionType;
-import org.ohdsi.webapi.cohortdefinition.GenerateCohortTasklet;
+import org.ohdsi.webapi.cohortdefinition.*;
 import org.ohdsi.webapi.GenerationStatus;
-import org.ohdsi.webapi.cohortdefinition.GenerationJobExecutionListener;
-import org.ohdsi.webapi.cohortdefinition.InclusionRuleReport;
 import org.ohdsi.webapi.cohortfeatures.GenerateCohortFeaturesTasklet;
 import org.ohdsi.webapi.conceptset.ConceptSetExport;
 import org.ohdsi.webapi.conceptset.ExportUtil;
 import org.ohdsi.webapi.job.JobExecutionResource;
 import org.ohdsi.webapi.job.JobTemplate;
+import org.ohdsi.webapi.model.Cohort;
 import org.ohdsi.webapi.shiro.management.Security;
 import org.ohdsi.webapi.source.Source;
 import org.ohdsi.webapi.source.SourceDaimon;
@@ -148,7 +142,7 @@ public class CohortDefinitionService extends AbstractDaoService {
       return statistic;
     }
   };
-  
+
   private final RowMapper<Long[]> inclusionRuleResultItemMapper = new RowMapper<Long[]>() {
 
     @Override
@@ -158,7 +152,67 @@ public class CohortDefinitionService extends AbstractDaoService {
       resultItem[1] = rs.getLong("person_count");
       return resultItem;
     }
-  };  
+  };
+
+  private final RowMapper<CohortGenerationResults.Cohort> cohortItemMapper = new RowMapper<CohortGenerationResults.Cohort>() {
+
+    @Override
+    public CohortGenerationResults.Cohort mapRow(ResultSet rs, int rowNum) throws SQLException {
+      CohortGenerationResults.Cohort resultItem = new CohortGenerationResults.Cohort();
+      resultItem.id = rs.getLong("subject_id");
+      resultItem.startDate = rs.getDate("cohort_start_date");
+      resultItem.endDate = rs.getDate("cohort_end_date");
+
+      return resultItem;
+    }
+  };
+
+  private final RowMapper<CohortGenerationResults.CohortInclusionResult> cohortInclusionResultItemMapper = new RowMapper<CohortGenerationResults.CohortInclusionResult>() {
+
+    @Override
+    public CohortGenerationResults.CohortInclusionResult mapRow(ResultSet rs, int rowNum) throws SQLException {
+      CohortGenerationResults.CohortInclusionResult resultItem = new CohortGenerationResults.CohortInclusionResult();
+      resultItem.inclusionRuleMask = rs.getLong("inclusion_rule_mask");
+      resultItem.personCount = rs.getLong("person_count");
+      return resultItem;
+    }
+  };
+
+  private final RowMapper<CohortGenerationResults.CohortInclusion> cohortInclusionItemMapper = new RowMapper<CohortGenerationResults.CohortInclusion>() {
+
+    @Override
+    public CohortGenerationResults.CohortInclusion mapRow(ResultSet rs, int rowNum) throws SQLException {
+      CohortGenerationResults.CohortInclusion resultItem = new CohortGenerationResults.CohortInclusion();
+      resultItem.name = rs.getString("name");
+      resultItem.description = rs.getString("description");
+      resultItem.ruleSequence = rs.getInt("rule_sequence");
+      return resultItem;
+    }
+  };
+
+  private final RowMapper<CohortGenerationResults.CohortInclusionStats> cohortInclusionStatsItemMapper = new RowMapper<CohortGenerationResults.CohortInclusionStats>() {
+
+    @Override
+    public CohortGenerationResults.CohortInclusionStats mapRow(ResultSet rs, int rowNum) throws SQLException {
+      CohortGenerationResults.CohortInclusionStats resultItem = new CohortGenerationResults.CohortInclusionStats();
+      resultItem.gainCount = rs.getLong("gain_count");
+      resultItem.personCount = rs.getLong("person_count");
+      resultItem.personTotal = rs.getLong("person_total");
+      resultItem.ruleSequence = rs.getInt("rule_sequence");
+      return resultItem;
+    }
+  };
+
+  private final RowMapper<CohortGenerationResults.CohortSummaryStats> cohortSummaryStatsItemMapper = new RowMapper<CohortGenerationResults.CohortSummaryStats>() {
+
+    @Override
+    public CohortGenerationResults.CohortSummaryStats mapRow(ResultSet rs, int rowNum) throws SQLException {
+      CohortGenerationResults.CohortSummaryStats resultItem = new CohortGenerationResults.CohortSummaryStats();
+      resultItem.baseCount= rs.getLong("base_count");
+      resultItem.finalCount= rs.getLong("final_count");
+      return resultItem;
+    }
+  };
 
   private CohortGenerationInfo findBySourceId(Set<CohortGenerationInfo> infoList, Integer sourceId) {
     for (CohortGenerationInfo info : infoList) {
@@ -505,12 +559,54 @@ public class CohortDefinitionService extends AbstractDaoService {
   }
 
   /**
-   * Queues up a generate cohort task for the specified cohort definition id.
+   * Exports the results of the generation of a cohort task for the specified cohort definition.
    *
-   * @param id - the Cohort Definition ID to generate
+   * @param id - the Cohort Definition ID to import results for.
+   * @param sourceKey - the database for which to import these results.
    * @return information about the Cohort Analysis Job
-   * @throws Exception
    */
+  @GET
+  @Produces(MediaType.APPLICATION_JSON)
+  @Path("/{id}/export/{sourceKey}")
+  public CohortGenerationResults exportCohortResults(@PathParam("id") final int id, @PathParam("sourceKey") final String sourceKey, @QueryParam("includeFeatures") final String includeFeatures) {
+
+    Source source = getSourceRepository().findBySourceKey(sourceKey);
+    String resultsTableQualifier = source.getTableQualifier(SourceDaimon.DaimonType.Results);
+
+    CohortGenerationResults results = new CohortGenerationResults();
+
+    String cohortQuery = String.format("select * from %s.cohort where cohort_definition_id = %d", resultsTableQualifier, id);
+    String cohortInclusionQuery = String.format("select * from %s.cohort_inclusion where cohort_definition_id = %d", resultsTableQualifier, id);
+    String cohortInclusionResultQuery = String.format("select * from %s.cohort_inclusion_result where cohort_definition_id = %d", resultsTableQualifier, id);
+    String cohortInclusionStatsQuery = String.format("select * from %s.cohort_inclusion_stats where cohort_definition_id = %d", resultsTableQualifier, id);
+    String cohortSummaryStatsQuery = String.format("select * from %s.cohort_summary_stats where cohort_definition_id = %d", resultsTableQualifier, id);
+    String translatedCohortQuery = SqlTranslate.translateSql(cohortQuery, source.getSourceDialect(), SessionUtils.sessionId(), resultsTableQualifier);
+    String translatedCohortInclusionQuery = SqlTranslate.translateSql(cohortInclusionQuery, source.getSourceDialect(), SessionUtils.sessionId(), resultsTableQualifier);
+    String translatedCohortInclusionResultQuery = SqlTranslate.translateSql(cohortInclusionResultQuery, source.getSourceDialect(), SessionUtils.sessionId(), resultsTableQualifier);
+    String translatedCohortInclusionStatsQuery = SqlTranslate.translateSql(cohortInclusionStatsQuery, source.getSourceDialect(), SessionUtils.sessionId(), resultsTableQualifier);
+    String translatedCohortSummaryStatsQuery = SqlTranslate.translateSql(cohortSummaryStatsQuery, source.getSourceDialect(), SessionUtils.sessionId(), resultsTableQualifier);
+    List<CohortGenerationResults.Cohort> cohorts = this.getSourceJdbcTemplate(source).query(translatedCohortQuery, cohortItemMapper);
+    List<CohortGenerationResults.CohortInclusion> cohortInclusions = this.getSourceJdbcTemplate(source).query(translatedCohortInclusionQuery, cohortInclusionItemMapper);
+    List<CohortGenerationResults.CohortInclusionResult> cohortInclusionResults = this.getSourceJdbcTemplate(source).query(translatedCohortInclusionResultQuery, cohortInclusionResultItemMapper);
+    List<CohortGenerationResults.CohortInclusionStats> cohortInclusionStats = this.getSourceJdbcTemplate(source).query(translatedCohortInclusionStatsQuery, cohortInclusionStatsItemMapper);
+    List<CohortGenerationResults.CohortSummaryStats> cohortSummaryStats = this.getSourceJdbcTemplate(source).query(translatedCohortSummaryStatsQuery, cohortSummaryStatsItemMapper);
+
+    results.cohort = cohorts;
+    results.cohortInclusion = cohortInclusions;
+    results.cohortInclusionResult = cohortInclusionResults;
+    results.cohortInclusionStats = cohortInclusionStats;
+    results.cohortSummaryStats = cohortSummaryStats;
+
+    return results;
+  }
+
+    /**
+     * Queues up a generate cohort task for the specified cohort definition id.
+     *
+     * @param id - the Cohort Definition ID to generate
+     * @return information about the Cohort Analysis Job
+     * @throws Exception
+     */
   @GET
   @Produces(MediaType.APPLICATION_JSON)
   @Path("/{id}/info")
