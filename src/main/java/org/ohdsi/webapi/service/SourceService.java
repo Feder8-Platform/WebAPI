@@ -1,14 +1,13 @@
 package org.ohdsi.webapi.service;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.*;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+
+import org.ohdsi.webapi.DataSourceLookup;
 import org.ohdsi.webapi.source.Source;
 import org.ohdsi.webapi.source.SourceDaimon;
 import org.ohdsi.webapi.source.SourceInfo;
@@ -39,6 +38,9 @@ public class SourceService extends AbstractDaoService {
   @Autowired
   private SourceRepository sourceRepository;
 
+  @Autowired
+  private DataSourceLookup dataSourceLookup;
+
   private static Collection<SourceInfo> cachedSources = null;
   
   @Path("sources")
@@ -47,12 +49,14 @@ public class SourceService extends AbstractDaoService {
   public Collection<SourceInfo> getSources() {
 
     if (cachedSources == null) {
-      ArrayList<SourceInfo> sources = new ArrayList<>();
-      for (Source source : sourceRepository.findAll()) {
+      Iterable<Source> sourceIterable = sourceRepository.findAll();
+      List<SourceInfo> sources = new ArrayList<>();
+      for (Source source : sourceIterable) {
         sources.add(new SourceInfo(source));
       }
       Collections.sort(sources, new SortByKey());
       cachedSources = sources;
+      initDataSources(sourceIterable);
     }
     return cachedSources;
   }
@@ -92,5 +96,13 @@ public class SourceService extends AbstractDaoService {
   @Produces(MediaType.APPLICATION_JSON)
   public SourceInfo getSource(@PathParam("key") final String sourceKey) {
     return sourceRepository.findBySourceKey(sourceKey).getSourceInfo();
+  }
+
+  /**
+   * Initialize the application data sources based on the collection of Source / SourceDaimons
+   * @param sourceIterable iterable of sources (including their source daimons)
+   */
+  private void initDataSources(Iterable<Source> sourceIterable) {
+    dataSourceLookup.initDataSources(sourceIterable);
   }
 }
