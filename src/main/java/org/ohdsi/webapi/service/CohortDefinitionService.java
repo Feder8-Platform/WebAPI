@@ -45,9 +45,19 @@ import org.ohdsi.sql.SqlRender;
 import org.ohdsi.circe.cohortdefinition.CohortExpression;
 import org.ohdsi.circe.cohortdefinition.CohortExpressionQueryBuilder;
 import org.ohdsi.circe.cohortdefinition.ConceptSet;
+import org.ohdsi.webapi.cohort.CohortEntity;
+import org.ohdsi.webapi.cohort.CohortRepository;
 import org.ohdsi.webapi.cohortdefinition.*;
 import org.ohdsi.webapi.GenerationStatus;
 import org.ohdsi.webapi.cohortfeatures.GenerateCohortFeaturesTasklet;
+import org.ohdsi.webapi.cohortinclusion.CohortInclusionEntity;
+import org.ohdsi.webapi.cohortinclusion.CohortInclusionRepository;
+import org.ohdsi.webapi.cohortinclusionresult.CohortInclusionResultEntity;
+import org.ohdsi.webapi.cohortinclusionresult.CohortInclusionResultRepository;
+import org.ohdsi.webapi.cohortinclusionstats.CohortInclusionStatsEntity;
+import org.ohdsi.webapi.cohortinclusionstats.CohortInclusionStatsRepository;
+import org.ohdsi.webapi.cohortsummarystats.CohortSummaryStatsEntity;
+import org.ohdsi.webapi.cohortsummarystats.CohortSummaryStatsRepository;
 import org.ohdsi.webapi.conceptset.ConceptSetExport;
 import org.ohdsi.webapi.conceptset.ExportUtil;
 import org.ohdsi.webapi.job.JobExecutionResource;
@@ -88,6 +98,17 @@ public class CohortDefinitionService extends AbstractDaoService {
 
   @Autowired
   private CohortDefinitionRepository cohortDefinitionRepository;
+
+  @Autowired
+  private CohortRepository cohortRepository;
+  @Autowired
+  private CohortInclusionRepository cohortInclusionRepository;
+  @Autowired
+  private CohortInclusionResultRepository cohortInclusionResultRepository;
+  @Autowired
+  private CohortInclusionStatsRepository cohortInclusionStatsRepository;
+  @Autowired
+  private CohortSummaryStatsRepository cohortSummaryStatsRepository;
 
   @Autowired
   private JobBuilderFactory jobBuilders;
@@ -360,6 +381,26 @@ public class CohortDefinitionService extends AbstractDaoService {
     return result;
   }
 
+  public static class CohortGenerationResultsDTO {
+    public List<CohortGenerationResults.CohortInclusionResult> cohortInclusionResults;
+    public List<CohortGenerationResults.Cohort> cohorts;
+    public List<CohortGenerationResults.CohortInclusion> cohortInclusions;
+    public List<CohortGenerationResults.CohortInclusionStats> cohortInclusionStats;
+    public List<CohortGenerationResults.CohortSummaryStats> cohortSummaryStats;
+  }
+
+  public CohortGenerationResultsDTO CohortGenerationResultsToDTO(CohortGenerationResults res){
+    CohortGenerationResultsDTO result = new CohortGenerationResultsDTO();
+
+    result.cohortInclusionResults = res.cohortInclusionResult;
+    result.cohorts = res.cohort;
+    result.cohortInclusions = res.cohortInclusion;
+    result.cohortInclusionStats = res.cohortInclusionStats;
+    result.cohortSummaryStats = res.cohortSummaryStats;
+
+    return result;
+  }
+
   @Context
   ServletContext context;
 
@@ -561,8 +602,8 @@ public class CohortDefinitionService extends AbstractDaoService {
   /**
    * Exports the results of the generation of a cohort task for the specified cohort definition.
    *
-   * @param id - the Cohort Definition ID to import results for.
-   * @param sourceKey - the database for which to import these results.
+   * @param id - the Cohort Definition ID to export results for.
+   * @param sourceKey - the database for which to export these results.
    * @return information about the Cohort Analysis Job
    */
   @GET
@@ -598,6 +639,78 @@ public class CohortDefinitionService extends AbstractDaoService {
     results.cohortSummaryStats = cohortSummaryStats;
 
     return results;
+  }
+
+
+  /**
+   * Imports the results of the generation of a cohort task for the specified cohort definition.
+   *
+   * @param id - the Cohort Definition ID to import results for.
+   * @param sourceKey - the database for which to import these results.
+   * @return information about the Cohort Analysis Job
+   */
+  @POST
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  @Transactional
+  @Path("/{id}/import/{sourceKey}")
+  public CohortGenerationResults importCohortResults(@PathParam("id") final int id, @PathParam("sourceKey") final String sourceKey, CohortGenerationResults cohortGenerationResults) {
+
+    List<CohortEntity> cohortEntities = new ArrayList<>();
+    for(CohortGenerationResults.Cohort cohort: cohortGenerationResults.cohort){
+      CohortEntity cohortEntity = new CohortEntity();
+      cohortEntity.setCohortDefinitionId((long)id);
+      cohortEntity.setCohortEndDate(cohort.endDate);
+      cohortEntity.setCohortStartDate(cohort.startDate);
+      cohortEntity.setSubjectId(cohort.id);
+      cohortEntities.add(cohortEntity);
+    }
+    cohortRepository.save(cohortEntities);
+
+    List<CohortInclusionEntity> cohortInclusionEntities = new ArrayList<>();
+    for(CohortGenerationResults.CohortInclusion cohortInclusion: cohortGenerationResults.cohortInclusion){
+      CohortInclusionEntity cohortInclusionEntity = new CohortInclusionEntity();
+      cohortInclusionEntity.setCohortDefinitionId((long) id);
+      cohortInclusionEntity.setDescription(cohortInclusion.description);
+      cohortInclusionEntity.setName(cohortInclusion.name);
+      cohortInclusionEntity.setRuleSequence(cohortInclusion.ruleSequence);
+      cohortInclusionEntities.add(cohortInclusionEntity);
+    }
+    cohortInclusionRepository.save(cohortInclusionEntities);
+
+    List<CohortInclusionResultEntity> cohortInclusionResultEntities = new ArrayList<>();
+    for(CohortGenerationResults.CohortInclusionResult cohortInclusionResult: cohortGenerationResults.cohortInclusionResult){
+      CohortInclusionResultEntity cohortInclusionResultEntity = new CohortInclusionResultEntity();
+      cohortInclusionResultEntity.setCohortDefinitionId((long)id);
+      cohortInclusionResultEntity.setInclusionRuleMask(cohortInclusionResult.inclusionRuleMask);
+      cohortInclusionResultEntity.setPersonCount(cohortInclusionResult.personCount);
+      cohortInclusionResultEntities.add(cohortInclusionResultEntity);
+    }
+    cohortInclusionResultRepository.save(cohortInclusionResultEntities);
+
+    List<CohortInclusionStatsEntity> cohortInclusionStatsList = new ArrayList<>();
+    for(CohortGenerationResults.CohortInclusionStats cohortInclusionStats: cohortGenerationResults.cohortInclusionStats){
+      CohortInclusionStatsEntity cohortInclusionStatsEntity = new CohortInclusionStatsEntity();
+      cohortInclusionStatsEntity.setCohortDefinitionId((long)id);
+      cohortInclusionStatsEntity.setGainCount(cohortInclusionStats.gainCount);
+      cohortInclusionStatsEntity.setPersonCount(cohortInclusionStats.personCount);
+      cohortInclusionStatsEntity.setPersonTotal(cohortInclusionStats.personTotal);
+      cohortInclusionStatsEntity.setRuleSequence(cohortInclusionStats.ruleSequence);
+      cohortInclusionStatsList.add(cohortInclusionStatsEntity);
+    }
+    cohortInclusionStatsRepository.save(cohortInclusionStatsList);
+
+    List<CohortSummaryStatsEntity> cohortSummaryStatsList = new ArrayList<>();
+    for(CohortGenerationResults.CohortSummaryStats cohortSummaryStats: cohortGenerationResults.cohortSummaryStats){
+      CohortSummaryStatsEntity cohortSummaryStatsEntity = new CohortSummaryStatsEntity();
+      cohortSummaryStatsEntity.setCohortDefinitionId((long)id);
+      cohortSummaryStatsEntity.setBaseCount(cohortSummaryStats.baseCount);
+      cohortSummaryStatsEntity.setFinalCount(cohortSummaryStats.finalCount);
+      cohortSummaryStatsList.add(cohortSummaryStatsEntity);
+    }
+    cohortSummaryStatsRepository.save(cohortSummaryStatsList);
+
+    return cohortGenerationResults;
   }
 
     /**
