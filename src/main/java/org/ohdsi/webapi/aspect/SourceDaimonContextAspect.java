@@ -12,6 +12,7 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.ohdsi.webapi.SourceDaimonContextHolder;
 import org.ohdsi.webapi.source.SourceDaimon;
 import org.ohdsi.webapi.source.SourceDaimonContext;
+import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.stereotype.Component;
@@ -27,6 +28,7 @@ import java.util.List;
 
 @Aspect
 @Component
+@Order(Integer.MIN_VALUE)
 public class SourceDaimonContextAspect {
 
     private static final Log LOG = LogFactory.getLog(SourceDaimonContextAspect.class);

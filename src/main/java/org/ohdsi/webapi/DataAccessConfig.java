@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -110,6 +111,7 @@ public class DataAccessConfig {
 
     @Bean
     @Primary
+    @Order(Integer.MIN_VALUE+1)
     //This is needed so that JpaTransactionManager is used for autowiring, instead of DataSourceTransactionManager
     public PlatformTransactionManager jpaTransactionManager() {//EntityManagerFactory entityManagerFactory) {
         return new JpaTransactionManager(entityManagerFactory());

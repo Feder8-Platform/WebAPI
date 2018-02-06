@@ -45,6 +45,7 @@ import org.ohdsi.sql.SqlRender;
 import org.ohdsi.circe.cohortdefinition.CohortExpression;
 import org.ohdsi.circe.cohortdefinition.CohortExpressionQueryBuilder;
 import org.ohdsi.circe.cohortdefinition.ConceptSet;
+import org.ohdsi.webapi.SourceDaimonContextHolder;
 import org.ohdsi.webapi.cohort.CohortEntity;
 import org.ohdsi.webapi.cohort.CohortRepository;
 import org.ohdsi.webapi.cohortdefinition.*;
@@ -66,6 +67,7 @@ import org.ohdsi.webapi.model.Cohort;
 import org.ohdsi.webapi.shiro.management.Security;
 import org.ohdsi.webapi.source.Source;
 import org.ohdsi.webapi.source.SourceDaimon;
+import org.ohdsi.webapi.source.SourceDaimonContext;
 import org.ohdsi.webapi.util.SessionUtils;
 import org.ohdsi.webapi.source.SourceInfo;
 import org.springframework.batch.core.Job;
@@ -641,7 +643,6 @@ public class CohortDefinitionService extends AbstractDaoService {
     return results;
   }
 
-
   /**
    * Imports the results of the generation of a cohort task for the specified cohort definition.
    *
@@ -655,7 +656,6 @@ public class CohortDefinitionService extends AbstractDaoService {
   @Transactional
   @Path("/{id}/import/{sourceKey}")
   public CohortGenerationResults importCohortResults(@PathParam("id") final int id, @PathParam("sourceKey") final String sourceKey, CohortGenerationResults cohortGenerationResults) {
-
     List<CohortEntity> cohortEntities = new ArrayList<>();
     for(CohortGenerationResults.Cohort cohort: cohortGenerationResults.cohort){
       CohortEntity cohortEntity = new CohortEntity();
