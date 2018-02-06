@@ -45,7 +45,6 @@ import org.ohdsi.sql.SqlRender;
 import org.ohdsi.circe.cohortdefinition.CohortExpression;
 import org.ohdsi.circe.cohortdefinition.CohortExpressionQueryBuilder;
 import org.ohdsi.circe.cohortdefinition.ConceptSet;
-import org.ohdsi.webapi.SourceDaimonContextHolder;
 import org.ohdsi.webapi.cohort.CohortEntity;
 import org.ohdsi.webapi.cohort.CohortRepository;
 import org.ohdsi.webapi.cohortdefinition.*;
@@ -63,11 +62,9 @@ import org.ohdsi.webapi.conceptset.ConceptSetExport;
 import org.ohdsi.webapi.conceptset.ExportUtil;
 import org.ohdsi.webapi.job.JobExecutionResource;
 import org.ohdsi.webapi.job.JobTemplate;
-import org.ohdsi.webapi.model.Cohort;
 import org.ohdsi.webapi.shiro.management.Security;
 import org.ohdsi.webapi.source.Source;
 import org.ohdsi.webapi.source.SourceDaimon;
-import org.ohdsi.webapi.source.SourceDaimonContext;
 import org.ohdsi.webapi.util.SessionUtils;
 import org.ohdsi.webapi.source.SourceInfo;
 import org.springframework.batch.core.Job;
@@ -76,7 +73,6 @@ import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.job.builder.SimpleJobBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
@@ -111,6 +107,8 @@ public class CohortDefinitionService extends AbstractDaoService {
   private CohortInclusionStatsRepository cohortInclusionStatsRepository;
   @Autowired
   private CohortSummaryStatsRepository cohortSummaryStatsRepository;
+  @Autowired
+  private CohortGenerationInfoRepository cohortGenerationInfoRepository;
 
   @Autowired
   private JobBuilderFactory jobBuilders;
@@ -634,11 +632,14 @@ public class CohortDefinitionService extends AbstractDaoService {
     List<CohortGenerationResults.CohortInclusionStats> cohortInclusionStats = this.getSourceJdbcTemplate(source).query(translatedCohortInclusionStatsQuery, cohortInclusionStatsItemMapper);
     List<CohortGenerationResults.CohortSummaryStats> cohortSummaryStats = this.getSourceJdbcTemplate(source).query(translatedCohortSummaryStatsQuery, cohortSummaryStatsItemMapper);
 
+    List<CohortGenerationInfo> infos = this.cohortGenerationInfoRepository.listGenerationInfoById(id);
+
     results.cohort = cohorts;
     results.cohortInclusion = cohortInclusions;
     results.cohortInclusionResult = cohortInclusionResults;
     results.cohortInclusionStats = cohortInclusionStats;
     results.cohortSummaryStats = cohortSummaryStats;
+    results.cohortGenerationInfo = infos;
 
     return results;
   }
@@ -654,7 +655,7 @@ public class CohortDefinitionService extends AbstractDaoService {
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @Transactional
-  @Path("/{id}/import/{sourceKey}")
+  @Path("/{id}/results/import/{sourceKey}")
   public CohortGenerationResults importCohortResults(@PathParam("id") final int id, @PathParam("sourceKey") final String sourceKey, CohortGenerationResults cohortGenerationResults) {
     List<CohortEntity> cohortEntities = new ArrayList<>();
     for(CohortGenerationResults.Cohort cohort: cohortGenerationResults.cohort){
@@ -710,6 +711,25 @@ public class CohortDefinitionService extends AbstractDaoService {
     }
     cohortSummaryStatsRepository.save(cohortSummaryStatsList);
 
+    return cohortGenerationResults;
+  }
+
+  /**
+   * Imports the results of the generation of a cohort task for the specified cohort definition.
+   *
+   * @param id - the Cohort Definition ID to import results for.
+   * @return information about the Cohort Analysis Job
+   */
+  @POST
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  @Transactional
+  @Path("/{id}/info/import")
+  public CohortGenerationResults importCohortGenerationInfo(@PathParam("id") final int id, CohortGenerationResults cohortGenerationResults) {
+    for(CohortGenerationInfo cohortGenerationInfo : cohortGenerationResults.cohortGenerationInfo){
+
+    }
+    cohortGenerationInfoRepository.save(cohortGenerationResults.cohortGenerationInfo);
     return cohortGenerationResults;
   }
 

@@ -34,4 +34,5 @@ public class CohortGenerationResults {
     public List<CohortInclusionResult> cohortInclusionResult;
     public List<CohortInclusionStats> cohortInclusionStats;
     public List<CohortSummaryStats> cohortSummaryStats;
+    public List<CohortGenerationInfo> cohortGenerationInfo;
 }
