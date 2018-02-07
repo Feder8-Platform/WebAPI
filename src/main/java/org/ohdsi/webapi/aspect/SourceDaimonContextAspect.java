@@ -50,10 +50,13 @@ public class SourceDaimonContextAspect {
     @Pointcut("inAbstractDaoServiceImport() || inAbstractDaoServiceCreate() || inAbstractDaoServiceSave()")
     public void inAbstractDaoServiceModify(){}
 
+    @Pointcut("execution(* *.importCohortResults(..)) && target(org.ohdsi.webapi.service.AbstractDaoService)")
+    public void inAbstractDaoServiceImportCohortResults(){}
+
     /**
      * Set the SourceDaimonContext before executing the operation and clear the context afterwards
      */
-    @Around("inAbstractDaoServiceModify()")
+    @Around("inAbstractDaoServiceImportCohortResults()")
     public Object setSourceDaimonContext(ProceedingJoinPoint jp) throws DataAccessException {
         LOG.debug("!!!!!!!!!!!!! setSourceDaimonContext !!!!!!!!!!!!!!");
         LOG.debug(jp.getTarget().getClass().getSimpleName() + " "

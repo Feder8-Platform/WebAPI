@@ -9,8 +9,8 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @EnableAspectJAutoProxy
 public class AspectConfig {
 
-    @Bean
-    public SourceDaimonContextAspect sourceDaimonContextAspect() {
-        return new SourceDaimonContextAspect();
-    }
+//    @Bean
+//    public SourceDaimonContextAspect sourceDaimonContextAspect() {
+//        return new SourceDaimonContextAspect();
+//    }
 }
