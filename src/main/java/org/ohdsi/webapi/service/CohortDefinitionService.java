@@ -604,10 +604,10 @@ public class CohortDefinitionService extends AbstractDaoService {
   @Path("/{id}/import/{sourceKey}")
   public CohortGenerationResults importCohortResults(@PathParam("id") final int id, @PathParam("sourceKey") final String sourceKey, CohortGenerationResults cohortGenerationResults){
     SourceDaimonContextHolder.setCurrentSourceDaimonContext(new SourceDaimonContext(sourceKey, SourceDaimon.DaimonType.Results));
-    importCohortGenerationResults(id, cohortGenerationResults);
+    CohortGenerationResults results = importCohortGenerationResults(id, cohortGenerationResults);
     SourceDaimonContextHolder.clear();
-    importCohortGenerationInfo(id, sourceKey, cohortGenerationResults.cohortGenerationInfo);
-    return cohortGenerationResults;
+    results.cohortGenerationInfo = importCohortGenerationInfo(id, sourceKey, cohortGenerationResults.cohortGenerationInfo);
+    return results;
   }
 
   @Transactional
