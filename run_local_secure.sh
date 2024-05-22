@@ -19,7 +19,7 @@ docker run \
 -p 54322:54322 \
 -v shared:/var/lib/shared \
 --env-file webapi.env \
---network honeur-net \
+--network feder8-net \
 feder8/webapi:$TAG
 
 rm -rf webapi.env
