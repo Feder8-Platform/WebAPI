@@ -1306,16 +1306,19 @@
         <maven.gitcommitid.skip>true</maven.gitcommitid.skip>
         <miredot.phase>none</miredot.phase>
         <skipTests>true</skipTests>
-        <datasource.driverClassName>org.postgresql.Driver</datasource.driverClassName>
-        <datasource.url>jdbc:postgresql://54.209.111.128:5432/vocabularyv5</datasource.url>
-        <datasource.username>USER</datasource.username>
-        <datasource.password>PASS</datasource.password>
-        <datasource.dialect>postgresql</datasource.dialect>
-        <datasource.ohdsi.schema>ohdsi</datasource.ohdsi.schema>
+        <datasource.driverClassName>${DRIVER_CLASS_NAME:org.postgresql.Driver}</datasource.driverClassName>
+        <datasource.host>${DB_HOST:postgres}</datasource.host>
+        <datasource.database>${DB_DATABASE:OHDSI}</datasource.database>
+        <datasource.port>${DB_PORT:5432}</datasource.port>
+        <datasource.url>jdbc:postgresql://${datasource.host}:${datasource.port}/${datasource.database}</datasource.url>
+        <datasource.username>${DB_USERNAME:feder8_admin}</datasource.username>
+        <datasource.password>${DB_PASSWORD:admin}</datasource.password>
+        <datasource.dialect>${DB_DIALECT:postgresql}</datasource.dialect>
+        <datasource.ohdsi.schema>${DB_OHDSI_SCHEMA:webapi}</datasource.ohdsi.schema>
         <flyway.datasource.driverClassName>${datasource.driverClassName}</flyway.datasource.driverClassName>
         <flyway.datasource.url>${datasource.url}</flyway.datasource.url>
-        <flyway.datasource.username>userWithWritesToOhdsiSchema</flyway.datasource.username>
-        <flyway.datasource.password>PASS</flyway.datasource.password>
+        <flyway.datasource.username>${datasource.username}</flyway.datasource.username>
+        <flyway.datasource.password>${datasource.password}</flyway.datasource.password>
         <flyway.schemas>${datasource.ohdsi.schema}</flyway.schemas>
         <flyway.placeholders.ohdsiSchema>${datasource.ohdsi.schema}</flyway.placeholders.ohdsiSchema>
         <flyway.locations>classpath:db/migration/postgresql</flyway.locations>

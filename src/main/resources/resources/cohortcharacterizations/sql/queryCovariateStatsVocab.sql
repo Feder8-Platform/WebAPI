@@ -37,7 +37,6 @@ WITH main_table AS (
     WHERE fr.covariate_id = @covariate_id and fr.cc_generation_id = @cc_generation_id and fr.cohort_definition_id = @cohort_id
           and min_levels_of_separation > 0
   )
--- Hive does not support DISTINCT *
 select distinct
   mt.covariate_id
   , mt.covariate_name

@@ -7,9 +7,24 @@ TAG=$VERSION
 touch webapi.env
 
 echo "DB_HOST=postgres" >> webapi.env
-echo "FEDER8_WEBAPI_SECURE=false" >> webapi.env
-echo "FEDER8_WEBAPI_CENTRAL=false" >> webapi.env
+echo "FEDER8_WEBAPI_SECURE=true" >> webapi.env 
+echo "FEDER8_WEBAPI_CENTRAL=true" >> webapi.env
 echo "JAVA_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=54322" >> webapi.env
+echo "FEDER8_WEBAPI_AUTH_METHOD=jdbc" >> webapi.env
+echo "SERVER_CONTEXT_PATH=/webapi" >> webapi.env
+echo "SERVER_USE_FORWARD_HEADERS=true" >> webapi.env
+echo "FEDER8_WEBAPI_OIDC_CLIENT_ID=local" >> webapi.env
+echo "FEDER8_WEBAPI_OIDC_SECRET=secret" >> webapi.env
+echo "FEDER8_WEBAPI_OIDC_ISSUER_URI=http://keycloak:8080/realms/feder8/.well-known/openid-configuration" >> webapi.env
+echo "FEDER8_WEBAPI_OIDC_REDIRECT_URL=http://localhost:8080/webapi/user/oauth/callback" >> webapi.env
+echo "FEDER8_WEBAPI_OIDC_REDIRECT_URL_API=http://localhost:8080/webapi/user/oauth/callback" >> webapi.env
+echo "FEDER8_WEBAPI_OIDC_REDIRECT_URL_UI=http://localhost:8081/atlas/#/welcome" >> webapi.env
+echo "DRIVER_CLASS_NAME=org.postgresql.Driver" >> webapi.env
+echo "DB_URL=jdbc:postgresql://postgres:5432/OHDSI" >> webapi.env
+echo "DB_USERNAME=feder8_admin" >> webapi.env
+echo "DB_PASSWORD=admin" >> webapi.env
+echo "DB_DIALECT=postgresql" >> webapi.env
+echo "DB_OHDSI_SCHEMA=webapi" >> webapi.env
 
 docker run \
 --rm \
@@ -22,4 +37,3 @@ docker run \
 feder8/webapi:$TAG
 
 rm -rf webapi.env
-

@@ -77,7 +77,6 @@ public abstract class AtlasSecurity extends Security {
 
   public AtlasSecurity(EntityPermissionSchemaResolver permissionSchemaResolver) {
     this.defaultRoles.add("public");
-    this.defaultRoles.add("Atlas users");
     this.permissionSchemaResolver = permissionSchemaResolver;
     featureAnalysisPermissionTemplates = permissionSchemaResolver.getForType(EntityType.FE_ANALYSIS).getAllPermissions();
   }
