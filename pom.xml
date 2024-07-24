@@ -78,12 +78,12 @@
     <spring.batch.repository.isolationLevelForCreate>ISOLATION_READ_COMMITTED</spring.batch.repository.isolationLevelForCreate>
     <spring.profiles.active>default</spring.profiles.active>
 
-    <security.provider>DisabledSecurity</security.provider>
+    <security.provider>AtlasRegularSecurity</security.provider>
     <security.token.expiration>43200</security.token.expiration>
-    <security.origin>http://localhost</security.origin>
+    <security.origin>https://localhost</security.origin>
     <security.ssl.enabled>false</security.ssl.enabled>
-    <security.oauth.callback.ui>http://localhost/Atlas/#/welcome</security.oauth.callback.ui>
-    <security.oauth.callback.api>http://localhost:8080/WebAPI/user/oauth/callback</security.oauth.callback.api>
+    <security.oauth.callback.ui>https://localhost/atlas/#/welcome</security.oauth.callback.ui>
+    <security.oauth.callback.api>https://localhost/webapi/user/oauth/callback</security.oauth.callback.api>
     <!-- Available options for callback urlResolver are: query and path -->
     <security.oauth.callback.urlResolver>query</security.oauth.callback.urlResolver>
     <security.oauth.google.apiKey></security.oauth.google.apiKey>
@@ -92,13 +92,13 @@
     <security.oauth.facebook.apiSecret></security.oauth.facebook.apiSecret>
     <security.oauth.github.apiKey></security.oauth.github.apiKey>
     <security.oauth.github.apiSecret></security.oauth.github.apiSecret>
-    <security.oid.clientId></security.oid.clientId>
-    <security.oid.apiSecret></security.oid.apiSecret>
-    <security.oid.url></security.oid.url>
+    <security.oid.clientId>local</security.oid.clientId>
+    <security.oid.apiSecret>secret</security.oid.apiSecret>
+    <security.oid.url>http://keycloak:8080/auth/realms/feder8/.well-known/openid-configuration</security.oid.url>
     <security.oid.logoutUrl></security.oid.logoutUrl>
     <security.oid.extraScopes></security.oid.extraScopes>
     <security.oid.customParams>{:}</security.oid.customParams>
-    <security.oid.redirectUrl>http://localhost/index.html#/welcome/</security.oid.redirectUrl>
+    <security.oid.redirectUrl>https://localhost/atlas/#/welcome</security.oid.redirectUrl>
     <security.kerberos.spn></security.kerberos.spn>
     <security.kerberos.keytabPath></security.kerberos.keytabPath>
     <security.ldap.dn>cn={0},dc=example,dc=org</security.ldap.dn>
@@ -208,8 +208,8 @@
     <executionengine.url>https://localhost:8888/api/v1/analyze</executionengine.url>
     <executionengine.token>Basic YWRtaW5Ab2R5c3NldXNpbmMuY29tOnBhc3N3b3Jk</executionengine.token>
     <executionengine.resultExclusions></executionengine.resultExclusions>
-    <executionengine.updateStatusCallback>http://localhost:8080/WebAPI/executionservice/callbacks/submission/{id}/status/update/{password}</executionengine.updateStatusCallback>
-    <executionengine.resultCallback>http://localhost:8080/WebAPI/executionservice/callbacks/submission/{id}/result/{password}</executionengine.resultCallback>
+    <executionengine.updateStatusCallback>https://localhost/webapi/executionservice/callbacks/submission/{id}/status/update/{password}</executionengine.updateStatusCallback>
+    <executionengine.resultCallback>https://localhost/webapi/executionservice/callbacks/submission/{id}/result/{password}</executionengine.resultCallback>
     <analysis.result.zipVolumeSizeMb>100</analysis.result.zipVolumeSizeMb>
 
     <!-- PASSWORD ENCRYPTION -->
