@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-    contextPath := getenv("SERVER_CONTEXT_PATH", "/")
+    contextPath := getenv("SERVER_CONTEXT_PATH", "/webapi")
     if contextPath == "/" {
         contextPath = ""
     }

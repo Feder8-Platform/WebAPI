@@ -33,18 +33,19 @@ import org.ohdsi.webapi.util.ResourceUtils;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.pac4j.cas.client.CasClient;
 import org.pac4j.cas.config.CasConfiguration;
-import org.pac4j.core.authorization.generator.AuthorizationGenerator;
 import org.pac4j.core.client.Client;
 import org.pac4j.core.client.Clients;
 import org.pac4j.core.config.Config;
 import org.pac4j.core.http.callback.CallbackUrlResolver;
 import org.pac4j.core.http.callback.PathParameterCallbackUrlResolver;
 import org.pac4j.core.http.callback.QueryParameterCallbackUrlResolver;
+import org.pac4j.http.client.direct.HeaderClient;
 import org.pac4j.oauth.client.FacebookClient;
 import org.pac4j.oauth.client.GitHubClient;
 import org.pac4j.oauth.client.Google2Client;
 import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.oidc.config.OidcConfiguration;
+import org.pac4j.oidc.credentials.authenticator.UserInfoOidcAuthenticator;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.config.SAML2Configuration;
 import org.slf4j.Logger;
@@ -325,23 +326,19 @@ public class AtlasRegularSecurity extends AtlasSecurity {
 
         if (this.openidAuthEnabled) {
             OidcConfiguration configuration = oidcConfCreator.build();
-            OidcClient oidcClient = new OidcClient(configuration);
-            oidcClient.setCallbackUrl(oauthApiCallback);
-            oidcClient.setCallbackUrlResolver(urlResolver);
-            AuthorizationGenerator authGen = (ctx, profile) -> {
-                JSONArray roles = (JSONArray)profile.getAttribute("groups");
-                if (roles == null) {
-                    return Optional.of(profile);
-                }
-                roles.forEach(role -> {
-                    if(role.toString().toLowerCase().startsWith("atlas"))
-                        profile.addRole(role.toString().substring(5).trim());
-                });
-                return Optional.of(profile);
-            };
-            oidcClient.addAuthorizationGenerator(authGen);
             if (StringUtils.isNotBlank(configuration.getClientId())) {
+                // https://www.pac4j.org/4.0.x/docs/clients/openid-connect.html
+                // OidcClient allows indirect login through UI with code flow
+                OidcClient oidcClient = new OidcClient(configuration);
+                oidcClient.setCallbackUrl(oauthApiCallback);
+                oidcClient.setCallbackUrlResolver(urlResolver);
                 clients.add(oidcClient);
+                // HeaderClient allows api access with a bearer token from the identity provider
+                UserInfoOidcAuthenticator authenticator = new UserInfoOidcAuthenticator(configuration);
+                HeaderClient headerClient = new HeaderClient("Authorization", "Bearer ", authenticator);
+                clients.add(headerClient);
+            } else {
+                logger.warn("openidAuth is enabled but no client id is provided");
             }
         }
 
@@ -381,6 +378,11 @@ public class AtlasRegularSecurity extends AtlasSecurity {
                 oidcFilter.setConfig(cfg);
                 oidcFilter.setClients("OidcClient");
                 filters.put(OIDC_AUTH, oidcFilter);
+
+                SecurityFilter oidcDirectFilter = new SecurityFilter();
+                oidcDirectFilter.setConfig(cfg);
+                oidcDirectFilter.setClients("HeaderClient");
+                filters.put(OIDC_DIRECT_AUTH, oidcDirectFilter);
             }
 
             CallbackFilter callbackFilter = new CallbackFilter();
@@ -425,7 +427,9 @@ public class AtlasRegularSecurity extends AtlasSecurity {
         }
 
         if (this.openidAuthEnabled) {
-            filterChainBuilder.addRestPath("/user/login/openid", FORCE_SESSION_CREATION, OIDC_AUTH, UPDATE_TOKEN, UPDATE_ATLAS_ROLE_FROM_TOKEN, SEND_TOKEN_IN_URL);
+            filterChainBuilder
+                    .addRestPath("/user/login/openid", FORCE_SESSION_CREATION, OIDC_AUTH, UPDATE_TOKEN, SEND_TOKEN_IN_URL)
+                    .addRestPath("/user/login/openidDirect", FORCE_SESSION_CREATION, OIDC_DIRECT_AUTH, UPDATE_TOKEN, SEND_TOKEN_IN_HEADER);
         }
 
         if (this.googleAuthEnabled) {
@@ -469,9 +473,9 @@ public class AtlasRegularSecurity extends AtlasSecurity {
 
         if (this.samlEnabled) {
             filterChainBuilder
-                .addPath("/user/login/saml", SSL, CORS, FORCE_SESSION_CREATION, SAML_AUTHC, UPDATE_TOKEN, SEND_TOKEN_IN_URL)
-                .addPath("/user/login/samlForce", SSL, CORS, FORCE_SESSION_CREATION, SAML_AUTHC_FORCE, UPDATE_TOKEN, SEND_TOKEN_IN_URL)
-                .addPath("/user/saml/callback", SSL, HANDLE_SAML, UPDATE_TOKEN, SEND_TOKEN_IN_URL);
+                    .addPath("/user/login/saml", SSL, CORS, FORCE_SESSION_CREATION, SAML_AUTHC, UPDATE_TOKEN, SEND_TOKEN_IN_URL)
+                    .addPath("/user/login/samlForce", SSL, CORS, FORCE_SESSION_CREATION, SAML_AUTHC_FORCE, UPDATE_TOKEN, SEND_TOKEN_IN_URL)
+                    .addPath("/user/saml/callback", SSL, HANDLE_SAML, UPDATE_TOKEN, SEND_TOKEN_IN_URL);
         }
         
         setupProtectedPaths(filterChainBuilder);
