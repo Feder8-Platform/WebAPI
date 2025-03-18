@@ -82,8 +82,8 @@
     <security.token.expiration>43200</security.token.expiration>
     <security.origin>*</security.origin>
     <security.ssl.enabled>false</security.ssl.enabled>
-    <security.oauth.callback.ui>http://localhost:80/atlas/#/welcome</security.oauth.callback.ui>
-    <security.oauth.callback.api>http://localhost:80/webapi/user/oauth/callback</security.oauth.callback.api>
+    <security.oauth.callback.ui>http://localhost:80/atlas/#/welcome</security.oauth.callback.ui>  <!--TODO-->
+    <security.oauth.callback.api>http://localhost:80/webapi/user/oauth/callback</security.oauth.callback.api>  <!--TODO-->
     <!-- Available options for callback urlResolver are: query and path -->
     <security.oauth.callback.urlResolver>query</security.oauth.callback.urlResolver>
     <security.oauth.google.apiKey></security.oauth.google.apiKey>
@@ -93,12 +93,12 @@
     <security.oauth.github.apiKey></security.oauth.github.apiKey>
     <security.oauth.github.apiSecret></security.oauth.github.apiSecret>
     <security.oid.clientId>local</security.oid.clientId>
-    <security.oid.apiSecret>secret</security.oid.apiSecret>
-    <security.oid.url>http://keycloak:8080/auth/realms/feder8/.well-known/openid-configuration</security.oid.url>
+    <security.oid.apiSecret>secret</security.oid.apiSecret> <!--TODO-->
+    <security.oid.url>http://keycloak:8080/auth/realms/feder8/.well-known/openid-configuration</security.oid.url> <!--TODO-->
     <security.oid.logoutUrl></security.oid.logoutUrl>
     <security.oid.extraScopes></security.oid.extraScopes>
     <security.oid.customParams>{:}</security.oid.customParams>
-    <security.oid.redirectUrl>http://localhost/index.html#/welcome/</security.oid.redirectUrl>
+    <security.oid.redirectUrl>http://localhost/webapi/user/oauth/callback</security.oid.redirectUrl> <!--TODO-->
     <security.kerberos.spn></security.kerberos.spn>
     <security.kerberos.keytabPath></security.kerberos.keytabPath>
     <security.ldap.dn>cn={0},dc=example,dc=org</security.ldap.dn>
@@ -1831,7 +1831,7 @@
       <id>webapi-gis</id>
       <properties>
         <atlasgis.version>1.0.1</atlasgis.version>
-        <gis.enabled>true</gis.enabled>
+        <gis.enabled>false</gis.enabled>
       </properties>
       <dependencies>
         <dependency>
