@@ -33,6 +33,7 @@ import org.ohdsi.webapi.util.ResourceUtils;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.pac4j.cas.client.CasClient;
 import org.pac4j.cas.config.CasConfiguration;
+import org.pac4j.core.authorization.generator.AuthorizationGenerator;
 import org.pac4j.core.client.Client;
 import org.pac4j.core.client.Clients;
 import org.pac4j.core.config.Config;
@@ -326,19 +327,23 @@ public class AtlasRegularSecurity extends AtlasSecurity {
 
         if (this.openidAuthEnabled) {
             OidcConfiguration configuration = oidcConfCreator.build();
+            OidcClient oidcClient = new OidcClient(configuration);
+            oidcClient.setCallbackUrl(oauthApiCallback);
+            oidcClient.setCallbackUrlResolver(urlResolver);
+            AuthorizationGenerator authGen = (ctx, profile) -> {
+                JSONArray roles = (JSONArray)profile.getAttribute("groups");
+                if (roles == null) {
+                    return Optional.of(profile);
+                }
+                roles.forEach(role -> {
+                    if(role.toString().toLowerCase().startsWith("atlas"))
+                        profile.addRole(role.toString().substring(5).trim());
+                });
+                return Optional.of(profile);
+            };
+            oidcClient.addAuthorizationGenerator(authGen);
             if (StringUtils.isNotBlank(configuration.getClientId())) {
-                // https://www.pac4j.org/4.0.x/docs/clients/openid-connect.html
-                // OidcClient allows indirect login through UI with code flow
-                OidcClient oidcClient = new OidcClient(configuration);
-                oidcClient.setCallbackUrl(oauthApiCallback);
-                oidcClient.setCallbackUrlResolver(urlResolver);
                 clients.add(oidcClient);
-                // HeaderClient allows api access with a bearer token from the identity provider
-                UserInfoOidcAuthenticator authenticator = new UserInfoOidcAuthenticator(configuration);
-                HeaderClient headerClient = new HeaderClient("Authorization", "Bearer ", authenticator);
-                clients.add(headerClient);
-            } else {
-                logger.warn("openidAuth is enabled but no client id is provided");
             }
         }
 
@@ -427,9 +432,7 @@ public class AtlasRegularSecurity extends AtlasSecurity {
         }
 
         if (this.openidAuthEnabled) {
-            filterChainBuilder
-                    .addRestPath("/user/login/openid", FORCE_SESSION_CREATION, OIDC_AUTH, UPDATE_TOKEN, SEND_TOKEN_IN_URL)
-                    .addRestPath("/user/login/openidDirect", FORCE_SESSION_CREATION, OIDC_DIRECT_AUTH, UPDATE_TOKEN, SEND_TOKEN_IN_HEADER);
+            filterChainBuilder.addRestPath("/user/login/openid", FORCE_SESSION_CREATION, OIDC_AUTH, UPDATE_TOKEN, UPDATE_ATLAS_ROLE_FROM_TOKEN, SEND_TOKEN_IN_URL);
         }
 
         if (this.googleAuthEnabled) {
