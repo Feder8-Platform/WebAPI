@@ -29,6 +29,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
 
 /**
  *
@@ -38,6 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Transactional
 public class PermissionManager {
 
+  private static final String ADMIN_LOGIN = "admin";
   @Autowired
   private UserRepository userRepository;
 
@@ -96,8 +98,20 @@ public class PermissionManager {
     UserEntity user = this.getUserByLogin(login);
 
     UserRoleEntity userRole = this.userRoleRepository.findByUserAndRole(user, role);
-    if (userRole != null && (origin == null || origin.equals(userRole.getOrigin())))
+    if (userRole != null)
       this.userRoleRepository.delete(userRole);
+  }
+
+  public void removeUserFromAllRole(String login) {
+    Guard.checkNotEmpty(login);
+
+    UserEntity user = this.getUserByLogin(login);
+
+    List<UserRoleEntity> userRoles = this.userRoleRepository.findByUser(user);
+    for (UserRoleEntity userRole : userRoles) {
+      if(!userRole.getRole().getName().equalsIgnoreCase(login))
+        this.userRoleRepository.delete(userRole);
+    }
   }
 
   public Iterable<RoleEntity> getRoles(boolean includePersonalRoles) {
@@ -153,7 +167,7 @@ public class PermissionManager {
     
     UserEntity user = userRepository.findByLogin(login);
     if (user != null) {
-      if (user.getName() == null || !userOrigin.equals(user.getOrigin())) {
+      if (user.getName() == null) {
         String nameToSet = name;
         if (name == null) {
           nameToSet = login;
@@ -184,6 +198,12 @@ public class PermissionManager {
           this.addUser(user, defaultRole, userOrigin, null);
         }
       }
+    }
+
+    if (login.equals(ADMIN_LOGIN)) {
+      RoleEntity role = this.getSystemRoleByName("admin");
+      if (role != null)
+        this.addUser(user, role, userOrigin, null);
     }
 
     user = userRepository.findOne(user.getId());
