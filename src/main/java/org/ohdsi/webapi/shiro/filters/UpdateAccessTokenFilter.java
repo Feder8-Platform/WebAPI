@@ -68,7 +68,7 @@ public class UpdateAccessTokenFilter extends AdviceFilter {
     Object principal = principals.getPrimaryPrincipal();
     
     if (principal instanceof Pac4jPrincipal) {
-      login = ((Pac4jPrincipal)principal).getProfile().getEmail();
+      login = ((Pac4jPrincipal)principal).getProfile().getUsername();
       name = ((Pac4jPrincipal)principal).getProfile().getDisplayName();
       
       /**
