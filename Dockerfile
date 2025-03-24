@@ -58,6 +58,7 @@ ENV DEFAULT_JAVA_OPTS="-Djava.security.egd=file:///dev/./urandom"
 WORKDIR /var/lib/ohdsi/webapi
 
 COPY --from=builder /code/opentelemetry-javaagent.jar .
+COPY docker-entrypoint.sh .
 
 # deploy the just built OHDSI WebAPI war file
 # copy resources in order of fewest changes to most changes.
@@ -72,7 +73,5 @@ EXPOSE 8080
 
 USER 101
 
-# Directly run the code as a WAR.
-CMD exec java ${DEFAULT_JAVA_OPTS} ${JAVA_OPTS} \
-    -cp ".:WebAPI.jar:WEB-INF/lib/*.jar${CLASSPATH}" \
-    org.springframework.boot.loader.WarLauncher
+ENTRYPOINT ["./docker-entrypoint.sh"]
+CMD ["run-webapi"]

@@ -45,8 +45,8 @@
     <!-- default sql server - TODO How about making postgres the default (e.g. in line with open source tech)? -alexfranken -->
     <datasource.driverClassName>corg.postgresql.Driver</datasource.driverClassName>
     <datasource.url>jdbc:postgresql://postgres:5432/OHDSI</datasource.url>
-    <datasource.username>${WEBAPI_USER:ohdsi_app_user}</datasource.username>
-    <datasource.password>${WEBAPI_USER_PW}</datasource.password>
+    <datasource.username>${WEBAPI_USER:ohdsi_admin_user}</datasource.username>
+    <datasource.password>${WEBAPI_ADMIN_PW}</datasource.password>
     <!--<datasource.validationQuery>SELECT 1</datasource.validationQuery>-->
     <datasource.dialect>sql server</datasource.dialect>
     <datasource.ohdsi.schema>webapi</datasource.ohdsi.schema>
@@ -54,8 +54,8 @@
     <!-- DB Change Management / Migration -->
     <flyway.datasource.driverClassName>org.postgresql.Driver</flyway.datasource.driverClassName>
     <flyway.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</flyway.datasource.url>
-    <flyway.datasource.username>${WEBAPI_USER:ohdsi_app_user}</flyway.datasource.username>
-    <flyway.datasource.password>${WEBAPI_USER_PW}</flyway.datasource.password>
+    <flyway.datasource.username>${WEBAPI_USER:ohdsi_admin_user}</flyway.datasource.username>
+    <flyway.datasource.password>${WEBAPI_ADMIN_PW}</flyway.datasource.password>
     <flyway.locations>classpath:db/migration/postgresql</flyway.locations>
     <!-- Note: Schema name is case-sensitive. -->
     <flyway.schemas>webapi</flyway.schemas>
@@ -142,8 +142,8 @@
     <security.db.datasource.schema>webapi</security.db.datasource.schema>
     <security.db.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</security.db.datasource.url>
     <security.db.datasource.driverClassName>${datasource.driverClassName}</security.db.datasource.driverClassName>
-    <security.db.datasource.username>${WEBAPI_USER:ohdsi_app_user}</security.db.datasource.username>
-    <security.db.datasource.password>${WEBAPI_USER_PW}</security.db.datasource.password>
+    <security.db.datasource.username>${WEBAPI_USER:ohdsi_admin_user}</security.db.datasource.username>
+    <security.db.datasource.password>${WEBAPI_ADMIN_PW}</security.db.datasource.password>
 
     <security.db.datasource.authenticationQuery>select password from ${security.db.datasource.schema}.users where lower(email) = lower(?)</security.db.datasource.authenticationQuery>
     <use.single.connect.datasource.for.testing>true</use.single.connect.datasource.for.testing>
@@ -1277,14 +1277,14 @@
       <properties>
         <datasource.driverClassName>org.postgresql.Driver</datasource.driverClassName>
         <datasource.url>jdbc:postgresql://postgres:5432/OHDSI</datasource.url>
-        <datasource.username>${WEBAPI_USER:ohdsi_app_user}</datasource.username>
-        <datasource.password>${WEBAPI_USER_PW}</datasource.password>
+        <datasource.username>${WEBAPI_USER:ohdsi_admin_user}</datasource.username>
+        <datasource.password>${WEBAPI_ADMIN_PW}</datasource.password>
         <datasource.dialect>postgresql</datasource.dialect>
         <datasource.ohdsi.schema>webapi</datasource.ohdsi.schema>
         <flyway.datasource.driverClassName>org.postgresql.Driver</flyway.datasource.driverClassName>
         <flyway.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</flyway.datasource.url>
-        <flyway.datasource.username>${WEBAPI_USER:ohdsi_app_user}</flyway.datasource.username>
-        <flyway.datasource.password>${WEBAPI_USER_PW}</flyway.datasource.password>
+        <flyway.datasource.username>${WEBAPI_USER:ohdsi_admin_user}</flyway.datasource.username>
+        <flyway.datasource.password>${WEBAPI_ADMIN_PW}</flyway.datasource.password>
         <flyway.schemas>webapi</flyway.schemas>
         <flyway.placeholders.ohdsiSchema>webapi</flyway.placeholders.ohdsiSchema>
         <flyway.locations>classpath:db/migration/postgresql</flyway.locations>
@@ -1292,8 +1292,8 @@
         <hibernate.dialect>org.hibernate.dialect.PostgreSQLDialect</hibernate.dialect>
         <security.db.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</security.db.datasource.url>
         <security.db.datasource.driverClassName>${datasource.driverClassName}</security.db.datasource.driverClassName>
-        <security.db.datasource.username>${WEBAPI_USER:ohdsi_app_user}</security.db.datasource.username>
-        <security.db.datasource.password>${WEBAPI_USER_PW}</security.db.datasource.password>
+        <security.db.datasource.username>${WEBAPI_USER:ohdsi_admin_user}</security.db.datasource.username>
+        <security.db.datasource.password>${WEBAPI_ADMIN_PW}</security.db.datasource.password>
         <security.db.datasource.authenticationQuery>select password from ${security.db.datasource.schema}.users_data where \
           lower(email) = lower(?)</security.db.datasource.authenticationQuery>
       </properties>
@@ -1308,14 +1308,14 @@
         <skipTests>true</skipTests>
         <datasource.driverClassName>org.postgresql.Driver</datasource.driverClassName>
         <datasource.url>jdbc:postgresql://postgres:5432/OHDSI</datasource.url>
-        <datasource.username>${WEBAPI_USER:ohdsi_app_user}</datasource.username>
-        <datasource.password>${WEBAPI_USER_PW}</datasource.password>
+        <datasource.username>${WEBAPI_USER:ohdsi_admin_user}</datasource.username>
+        <datasource.password>${WEBAPI_ADMIN_PW}</datasource.password>
         <datasource.dialect>postgresql</datasource.dialect>
         <datasource.ohdsi.schema>webapi</datasource.ohdsi.schema>
         <flyway.datasource.driverClassName>org.postgresql.Driver</flyway.datasource.driverClassName>
         <flyway.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</flyway.datasource.url>
-        <flyway.datasource.username>${WEBAPI_USER:ohdsi_app_user}</flyway.datasource.username>
-        <flyway.datasource.password>${WEBAPI_USER_PW}</flyway.datasource.password>
+        <flyway.datasource.username>${WEBAPI_USER:ohdsi_admin_user}</flyway.datasource.username>
+        <flyway.datasource.password>${WEBAPI_ADMIN_PW}</flyway.datasource.password>
         <flyway.schemas>webapi</flyway.schemas>
         <flyway.placeholders.ohdsiSchema>webapi</flyway.placeholders.ohdsiSchema>
         <flyway.locations>classpath:db/migration/postgresql</flyway.locations>
@@ -1323,8 +1323,8 @@
         <hibernate.dialect>org.hibernate.dialect.PostgreSQLDialect</hibernate.dialect>
         <security.db.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</security.db.datasource.url>
         <security.db.datasource.driverClassName>${datasource.driverClassName}</security.db.datasource.driverClassName>
-        <security.db.datasource.username>${WEBAPI_USER:ohdsi_app_user}</security.db.datasource.username>
-        <security.db.datasource.password>${WEBAPI_USER_PW}</security.db.datasource.password>
+        <security.db.datasource.username>${WEBAPI_USER:ohdsi_admin_user}</security.db.datasource.username>
+        <security.db.datasource.password>${WEBAPI_ADMIN_PW}</security.db.datasource.password>
         <security.db.datasource.authenticationQuery>select password from ${security.db.datasource.schema}.users_data where \
           lower(email) = lower(?)</security.db.datasource.authenticationQuery>
       </properties>

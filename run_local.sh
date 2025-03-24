@@ -8,8 +8,6 @@ touch webapi.env
 
 echo "FEDER8_WEBAPI_SECURE=false" >> webapi.env
 echo "FEDER8_WEBAPI_CENTRAL=false" >> webapi.env
-echo "WEBAPI_USER=feder8_admin" >> webapi.env
-echo "WEBAPI_USER_PW=feder8_admin" >> webapi.env
 echo "FEDER8_WEBAPI_OIDC_REDIRECT_URL_UI=http://localhost:80/atlas/#/welcome" >> webapi.env
 echo "FEDER8_WEBAPI_OIDC_REDIRECT_URL_API=http://localhost:80/webapi/user/oauth/callback" >> webapi.env
 echo "FEDER8_WEBAPI_OIDC_SECRET=secret" >> webapi.env
@@ -22,8 +20,7 @@ docker run \
 -v shared:/var/lib/shared \
 --env-file webapi.env \
 --network feder8-net \
-feder8/webapi:$TAG
+--user 101:101 \
+feder8/webapi:$TAG 
 
 rm -rf webapi.env
-
-${WEBAPI_USER:ohdsi_app_user}
