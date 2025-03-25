@@ -74,7 +74,7 @@
     <kerberos.configPath>/etc/krb5.conf</kerberos.configPath>
     <kerberos.kinitPath></kerberos.kinitPath>
 
-    <spring.batch.repository.tableprefix>webapi.BATCH_</spring.batch.repository.tableprefix>
+    <spring.batch.repository.tableprefix>${datasource.ohdsi.schema}.BATCH_</spring.batch.repository.tableprefix>
     <spring.batch.repository.isolationLevelForCreate>ISOLATION_READ_COMMITTED</spring.batch.repository.isolationLevelForCreate>
     <spring.profiles.active>default</spring.profiles.active>
 
@@ -92,7 +92,7 @@
     <security.oauth.facebook.apiSecret></security.oauth.facebook.apiSecret>
     <security.oauth.github.apiKey></security.oauth.github.apiKey>
     <security.oauth.github.apiSecret></security.oauth.github.apiSecret>
-    <security.oid.clientId>local</security.oid.clientId>
+    <security.oid.clientId>${FEDER8_WEBAPI_OIDC_CLIENT_ID:local}</security.oid.clientId>
     <security.oid.apiSecret>${FEDER8_WEBAPI_OIDC_SECRET}</security.oid.apiSecret> 
     <security.oid.url>${KEYCLOAK_DISCOVERY_URI}</security.oid.url>
     <security.oid.logoutUrl></security.oid.logoutUrl>
@@ -139,7 +139,7 @@
     <security.cas.cassvcs></security.cas.cassvcs>
     <security.cas.casticket>casticket</security.cas.casticket>
 
-    <security.db.datasource.schema>webapi</security.db.datasource.schema>
+    <security.db.datasource.schema>${datasource.ohdsi.schema}</security.db.datasource.schema>
     <security.db.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</security.db.datasource.url>
     <security.db.datasource.driverClassName>${datasource.driverClassName}</security.db.datasource.driverClassName>
     <security.db.datasource.username>${WEBAPI_USER:ohdsi_admin_user}</security.db.datasource.username>
@@ -169,16 +169,16 @@
     <security.saml.sloUrl></security.saml.sloUrl>
     <security.saml.maximumAuthenticationLifetime>60</security.saml.maximumAuthenticationLifetime>
 
-    <security.auth.windows.enabled>true</security.auth.windows.enabled>
-    <security.auth.kerberos.enabled>true</security.auth.kerberos.enabled>
+    <security.auth.windows.enabled>false</security.auth.windows.enabled>
+    <security.auth.kerberos.enabled>false</security.auth.kerberos.enabled>
     <security.auth.openid.enabled>true</security.auth.openid.enabled>
-    <security.auth.facebook.enabled>true</security.auth.facebook.enabled>
-    <security.auth.github.enabled>true</security.auth.github.enabled>
-    <security.auth.google.enabled>true</security.auth.google.enabled>
-    <security.auth.jdbc.enabled>true</security.auth.jdbc.enabled>
-    <security.auth.ldap.enabled>true</security.auth.ldap.enabled>
-    <security.auth.ad.enabled>true</security.auth.ad.enabled>
-    <security.auth.cas.enabled>true</security.auth.cas.enabled>
+    <security.auth.facebook.enabled>false</security.auth.facebook.enabled>
+    <security.auth.github.enabled>false</security.auth.github.enabled>
+    <security.auth.google.enabled>false</security.auth.google.enabled>
+    <security.auth.jdbc.enabled>false</security.auth.jdbc.enabled>
+    <security.auth.ldap.enabled>false</security.auth.ldap.enabled>
+    <security.auth.ad.enabled>false</security.auth.ad.enabled>
+    <security.auth.cas.enabled>false</security.auth.cas.enabled>
 
     <spring.datasource.hikari.connection-test-query>SELECT 1</spring.datasource.hikari.connection-test-query>
     <spring.datasource.hikari.connection-test-query-timeout>2000</spring.datasource.hikari.connection-test-query-timeout>
@@ -1285,10 +1285,10 @@
         <flyway.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</flyway.datasource.url>
         <flyway.datasource.username>${WEBAPI_USER:ohdsi_admin_user}</flyway.datasource.username>
         <flyway.datasource.password>${WEBAPI_ADMIN_PW}</flyway.datasource.password>
-        <flyway.schemas>webapi</flyway.schemas>
-        <flyway.placeholders.ohdsiSchema>webapi</flyway.placeholders.ohdsiSchema>
+        <flyway.schemas>${datasource.ohdsi.schema}</flyway.schemas>
+        <flyway.placeholders.ohdsiSchema>${datasource.ohdsi.schema}</flyway.placeholders.ohdsiSchema>
         <flyway.locations>classpath:db/migration/postgresql</flyway.locations>
-        <spring.batch.repository.tableprefix>webapi.BATCH_</spring.batch.repository.tableprefix>
+        <spring.batch.repository.tableprefix>${datasource.ohdsi.schema}.BATCH_</spring.batch.repository.tableprefix>
         <hibernate.dialect>org.hibernate.dialect.PostgreSQLDialect</hibernate.dialect>
         <security.db.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</security.db.datasource.url>
         <security.db.datasource.driverClassName>${datasource.driverClassName}</security.db.datasource.driverClassName>
@@ -1316,8 +1316,8 @@
         <flyway.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</flyway.datasource.url>
         <flyway.datasource.username>${WEBAPI_USER:ohdsi_admin_user}</flyway.datasource.username>
         <flyway.datasource.password>${WEBAPI_ADMIN_PW}</flyway.datasource.password>
-        <flyway.schemas>webapi</flyway.schemas>
-        <flyway.placeholders.ohdsiSchema>webapi</flyway.placeholders.ohdsiSchema>
+        <flyway.schemas>${datasource.ohdsi.schema}</flyway.schemas>
+        <flyway.placeholders.ohdsiSchema>${datasource.ohdsi.schema}</flyway.placeholders.ohdsiSchema>
         <flyway.locations>classpath:db/migration/postgresql</flyway.locations>
         <spring.batch.repository.tableprefix>webapi.BATCH_</spring.batch.repository.tableprefix>
         <hibernate.dialect>org.hibernate.dialect.PostgreSQLDialect</hibernate.dialect>

@@ -12,6 +12,8 @@ echo "FEDER8_WEBAPI_OIDC_REDIRECT_URL_UI=http://localhost:80/atlas/#/welcome" >>
 echo "FEDER8_WEBAPI_OIDC_REDIRECT_URL_API=http://localhost:80/webapi/user/oauth/callback" >> webapi.env
 echo "FEDER8_WEBAPI_OIDC_SECRET=secret" >> webapi.env
 echo "KEYCLOAK_DISCOVERY_URI=http://keycloak:8080/auth/realms/feder8/.well-known/openid-configuration" >> webapi.env
+echo "FEDER8_WEBAPI_OIDC_CLIENT_ID=local" >> webapi.env
+
 docker run \
 --rm \
 --name webapi \
