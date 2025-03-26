@@ -43,8 +43,11 @@
 
     <!-- Primary DataSource -->
     <!-- default sql server - TODO How about making postgres the default (e.g. in line with open source tech)? -alexfranken -->
-    <datasource.driverClassName>corg.postgresql.Driver</datasource.driverClassName>
-    <datasource.url>jdbc:postgresql://postgres:5432/OHDSI</datasource.url>
+    <datasource.host>${DB_HOST:postgres}</datasource.host>
+    <datasource.port>${DB_PORT:5432}</datasource.port>
+    <datasource.database>${DB_DATABASE:OHDSI}</datasource.database>
+    <datasource.driverClassName>${DB_DRIVER:org.postgresql.Driver}</datasource.driverClassName>
+    <datasource.url>jdbc:postgresql://${datasource.host}:${datasource.port}/${datasource.database}</datasource.url>
     <datasource.username>${WEBAPI_USER:ohdsi_admin_user}</datasource.username>
     <datasource.password>${WEBAPI_ADMIN_PW}</datasource.password>
     <!--<datasource.validationQuery>SELECT 1</datasource.validationQuery>-->
@@ -52,8 +55,8 @@
     <datasource.ohdsi.schema>webapi</datasource.ohdsi.schema>
     <datasource.dialect.source>sql server</datasource.dialect.source>
     <!-- DB Change Management / Migration -->
-    <flyway.datasource.driverClassName>org.postgresql.Driver</flyway.datasource.driverClassName>
-    <flyway.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</flyway.datasource.url>
+    <flyway.datasource.driverClassName>${DB_DRIVER:org.postgresql.Driver}</flyway.datasource.driverClassName>
+    <flyway.datasource.url>jdbc:postgresql://${datasource.host}:${datasource.port}/${datasource.database}</flyway.datasource.url>
     <flyway.datasource.username>${WEBAPI_USER:ohdsi_admin_user}</flyway.datasource.username>
     <flyway.datasource.password>${WEBAPI_ADMIN_PW}</flyway.datasource.password>
     <flyway.locations>classpath:db/migration/postgresql</flyway.locations>
@@ -140,7 +143,7 @@
     <security.cas.casticket>casticket</security.cas.casticket>
 
     <security.db.datasource.schema>${datasource.ohdsi.schema}</security.db.datasource.schema>
-    <security.db.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</security.db.datasource.url>
+    <security.db.datasource.url>jdbc:postgresql://${datasource.host}:${datasource.port}/${datasource.database}</security.db.datasource.url>
     <security.db.datasource.driverClassName>${datasource.driverClassName}</security.db.datasource.driverClassName>
     <security.db.datasource.username>${WEBAPI_USER:ohdsi_admin_user}</security.db.datasource.username>
     <security.db.datasource.password>${WEBAPI_ADMIN_PW}</security.db.datasource.password>
@@ -1275,14 +1278,14 @@
     <profile>
       <id>webapi-postgresql</id>
       <properties>
-        <datasource.driverClassName>org.postgresql.Driver</datasource.driverClassName>
-        <datasource.url>jdbc:postgresql://postgres:5432/OHDSI</datasource.url>
+        <datasource.driverClassName>${DB_DRIVER:org.postgresql.Driver}</datasource.driverClassName>
+        <datasource.url>jdbc:postgresql://${datasource.host}:${datasource.port}/${datasource.database}</datasource.url>
         <datasource.username>${WEBAPI_USER:ohdsi_admin_user}</datasource.username>
         <datasource.password>${WEBAPI_ADMIN_PW}</datasource.password>
         <datasource.dialect>postgresql</datasource.dialect>
         <datasource.ohdsi.schema>webapi</datasource.ohdsi.schema>
-        <flyway.datasource.driverClassName>org.postgresql.Driver</flyway.datasource.driverClassName>
-        <flyway.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</flyway.datasource.url>
+        <flyway.datasource.driverClassName>${DB_DRIVER:org.postgresql.Driver}</flyway.datasource.driverClassName>
+        <flyway.datasource.url>jdbc:postgresql://${datasource.host}:${datasource.port}/${datasource.database}</flyway.datasource.url>
         <flyway.datasource.username>${WEBAPI_USER:ohdsi_admin_user}</flyway.datasource.username>
         <flyway.datasource.password>${WEBAPI_ADMIN_PW}</flyway.datasource.password>
         <flyway.schemas>${datasource.ohdsi.schema}</flyway.schemas>
@@ -1290,7 +1293,7 @@
         <flyway.locations>classpath:db/migration/postgresql</flyway.locations>
         <spring.batch.repository.tableprefix>${datasource.ohdsi.schema}.BATCH_</spring.batch.repository.tableprefix>
         <hibernate.dialect>org.hibernate.dialect.PostgreSQLDialect</hibernate.dialect>
-        <security.db.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</security.db.datasource.url>
+        <security.db.datasource.url>jdbc:postgresql://${datasource.host}:${datasource.port}/${datasource.database}</security.db.datasource.url>
         <security.db.datasource.driverClassName>${datasource.driverClassName}</security.db.datasource.driverClassName>
         <security.db.datasource.username>${WEBAPI_USER:ohdsi_admin_user}</security.db.datasource.username>
         <security.db.datasource.password>${WEBAPI_ADMIN_PW}</security.db.datasource.password>
@@ -1306,14 +1309,14 @@
         <maven.gitcommitid.skip>true</maven.gitcommitid.skip>
         <miredot.phase>none</miredot.phase>
         <skipTests>true</skipTests>
-        <datasource.driverClassName>org.postgresql.Driver</datasource.driverClassName>
-        <datasource.url>jdbc:postgresql://postgres:5432/OHDSI</datasource.url>
+        <datasource.driverClassName>${DB_DRIVER:org.postgresql.Driver}</datasource.driverClassName>
+        <datasource.url>jdbc:postgresql://${datasource.host}:${datasource.port}/${datasource.database}</datasource.url>
         <datasource.username>${WEBAPI_USER:ohdsi_admin_user}</datasource.username>
         <datasource.password>${WEBAPI_ADMIN_PW}</datasource.password>
         <datasource.dialect>postgresql</datasource.dialect>
         <datasource.ohdsi.schema>webapi</datasource.ohdsi.schema>
-        <flyway.datasource.driverClassName>org.postgresql.Driver</flyway.datasource.driverClassName>
-        <flyway.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</flyway.datasource.url>
+        <flyway.datasource.driverClassName>${DB_DRIVER:org.postgresql.Driver}</flyway.datasource.driverClassName>
+        <flyway.datasource.url>jdbc:postgresql://${datasource.host}:${datasource.port}/${datasource.database}</flyway.datasource.url>
         <flyway.datasource.username>${WEBAPI_USER:ohdsi_admin_user}</flyway.datasource.username>
         <flyway.datasource.password>${WEBAPI_ADMIN_PW}</flyway.datasource.password>
         <flyway.schemas>${datasource.ohdsi.schema}</flyway.schemas>
@@ -1321,7 +1324,7 @@
         <flyway.locations>classpath:db/migration/postgresql</flyway.locations>
         <spring.batch.repository.tableprefix>webapi.BATCH_</spring.batch.repository.tableprefix>
         <hibernate.dialect>org.hibernate.dialect.PostgreSQLDialect</hibernate.dialect>
-        <security.db.datasource.url>jdbc:postgresql://postgres:5432/OHDSI</security.db.datasource.url>
+        <security.db.datasource.url>jdbc:postgresql://${datasource.host}:${datasource.port}/${datasource.database}</security.db.datasource.url>
         <security.db.datasource.driverClassName>${datasource.driverClassName}</security.db.datasource.driverClassName>
         <security.db.datasource.username>${WEBAPI_USER:ohdsi_admin_user}</security.db.datasource.username>
         <security.db.datasource.password>${WEBAPI_ADMIN_PW}</security.db.datasource.password>
