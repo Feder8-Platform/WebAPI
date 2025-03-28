@@ -1,3 +1,38 @@
+# Feder8 WebAPI 
+
+The source code of Feder8 WebAPI is based on [OHDSI/WebAPI_v2.14.0](https://github.com/OHDSI/WebAPI/tree/v2.14.0) with some modifications to ensure the correct connection with feder8-studio (keycloak), making database connection, database url, database schema and security settings configurable, adding a healthcheck in Dockerfile and using correct path for WebAPI service:
+
+- Dockerfile: healthcheck added and using java 11
+    - line 1 to 8: golang image used for the healthcheck 
+    - line 41: using java 11 as runtime image
+    - line 45 to 47: adding files in runtime stage for healthcheck execution and healthcheck itself
+
+- pom.xml/sample_setting.xml: database connection, database url, database schema and security settings configurable
+
+- src/main/java/org/ohdsi/webapi/common/sensitiveinfo/AbstractAdminService.java: ensure correct connection handled by Feder8-Studio (keycloak)
+    - line 50, including admin role created by us 
+
+- src/main/java/org/ohdsi/webapi/shiro/PermissionManager.java: ensure correct connection handled by Feder8-Studio (keycloak)
+    - removeUserFromAllRole function kept from previous feder8 webapi 
+    - from line 203 to 208, ensuring ADMIN_LOGIN included 
+
+- src/main/java/org/ohdsi/webapi/shiro/filters/UpdateAccessToken.java: ensure correct connection handled by Feder8-Studio (keycloak)
+    - line 71, using the username instead of the email for the connection (username store in webapi tables on the db instead of email)
+
+- src/main/java/org/ohdsi/webapi/shiro/management/AtlasRegularSecurity.java: ensure correct connection handled by Feder8-Studio (keycloak)
+    - line 278, kept using UPDATE_ATLAS_ROLE_FROM_TOKEN filter 
+    - line 333 to 342, keeping AuthorizationGenerator from previous feder8 webapi
+    - line 394, keeping Feder8CallbackLogic as a callback filter
+
+- src/main/java/org/ohdsi/webapi/shiro/management/AtlasSecurity.java: ensure correct connection handled by Feder8-Studio (keycloak)
+    - line 80, keeing "Atlas users" as a default Role
+
+- src/main/java/org/ohdsi/webapi/shiro/management/FilterTemplates.java: ensure correct connection handled by Feder8-Studio (keycloak)
+    - line 29, defining UPDATE_ATLAS_ROLE_FROM_TOKEN filter 
+
+- src/main/resources/application.properties: using correct path for WebAPI service
+    - line 90, server.context-path set to /webapi instead of /WebAPI
+
 # OHDSI WebAPI
 
 OHDSI WebAPI contains all OHDSI RESTful services that can be called from OHDSI applications.
