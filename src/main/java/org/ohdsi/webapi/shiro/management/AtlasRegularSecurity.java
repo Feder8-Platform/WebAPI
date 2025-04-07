@@ -40,11 +40,13 @@ import org.pac4j.core.config.Config;
 import org.pac4j.core.http.callback.CallbackUrlResolver;
 import org.pac4j.core.http.callback.PathParameterCallbackUrlResolver;
 import org.pac4j.core.http.callback.QueryParameterCallbackUrlResolver;
+import org.pac4j.http.client.direct.HeaderClient;
 import org.pac4j.oauth.client.FacebookClient;
 import org.pac4j.oauth.client.GitHubClient;
 import org.pac4j.oauth.client.Google2Client;
 import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.oidc.config.OidcConfiguration;
+import org.pac4j.oidc.credentials.authenticator.UserInfoOidcAuthenticator;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.config.SAML2Configuration;
 import org.slf4j.Logger;
@@ -381,6 +383,11 @@ public class AtlasRegularSecurity extends AtlasSecurity {
                 oidcFilter.setConfig(cfg);
                 oidcFilter.setClients("OidcClient");
                 filters.put(OIDC_AUTH, oidcFilter);
+
+                SecurityFilter oidcDirectFilter = new SecurityFilter();
+                oidcDirectFilter.setConfig(cfg);
+                oidcDirectFilter.setClients("HeaderClient");
+                filters.put(OIDC_DIRECT_AUTH, oidcDirectFilter);
             }
 
             CallbackFilter callbackFilter = new CallbackFilter();
@@ -469,9 +476,9 @@ public class AtlasRegularSecurity extends AtlasSecurity {
 
         if (this.samlEnabled) {
             filterChainBuilder
-                .addPath("/user/login/saml", SSL, CORS, FORCE_SESSION_CREATION, SAML_AUTHC, UPDATE_TOKEN, SEND_TOKEN_IN_URL)
-                .addPath("/user/login/samlForce", SSL, CORS, FORCE_SESSION_CREATION, SAML_AUTHC_FORCE, UPDATE_TOKEN, SEND_TOKEN_IN_URL)
-                .addPath("/user/saml/callback", SSL, HANDLE_SAML, UPDATE_TOKEN, SEND_TOKEN_IN_URL);
+                    .addPath("/user/login/saml", SSL, CORS, FORCE_SESSION_CREATION, SAML_AUTHC, UPDATE_TOKEN, SEND_TOKEN_IN_URL)
+                    .addPath("/user/login/samlForce", SSL, CORS, FORCE_SESSION_CREATION, SAML_AUTHC_FORCE, UPDATE_TOKEN, SEND_TOKEN_IN_URL)
+                    .addPath("/user/saml/callback", SSL, HANDLE_SAML, UPDATE_TOKEN, SEND_TOKEN_IN_URL);
         }
         
         setupProtectedPaths(filterChainBuilder);

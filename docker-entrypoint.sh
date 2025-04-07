@@ -3,6 +3,7 @@
 if [ "$1" = 'run-webapi' ]; then
   set -e
   if [ -f "/var/lib/shared/honeur.env" ]; then
+    echo "loading feder8 env vars"
     source /var/lib/shared/honeur.env
     export $(cut -d= -f1 /var/lib/shared/honeur.env)
   fi

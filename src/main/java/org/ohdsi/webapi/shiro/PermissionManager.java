@@ -4,8 +4,6 @@ import com.odysseusinc.logging.event.AddUserEvent;
 import com.odysseusinc.logging.event.DeleteRoleEvent;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.UnknownAccountException;
-import org.apache.shiro.authz.AuthorizationInfo;
-import org.apache.shiro.authz.SimpleAuthorizationInfo;
 import org.apache.shiro.subject.Subject;
 import org.ohdsi.webapi.helper.Guard;
 import org.ohdsi.webapi.security.model.UserSimpleAuthorizationInfo;
@@ -17,21 +15,21 @@ import org.ohdsi.webapi.shiro.Entities.RolePermissionEntity;
 import org.ohdsi.webapi.shiro.Entities.RolePermissionRepository;
 import org.ohdsi.webapi.shiro.Entities.RoleRepository;
 import org.ohdsi.webapi.shiro.Entities.UserEntity;
+import org.ohdsi.webapi.shiro.Entities.UserOrigin;
 import org.ohdsi.webapi.shiro.Entities.UserRepository;
 import org.ohdsi.webapi.shiro.Entities.UserRoleEntity;
 import org.ohdsi.webapi.shiro.Entities.UserRoleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.Principal;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
 
 /**
  *
@@ -75,17 +73,21 @@ public class PermissionManager {
   }
 
   public String addUserToRole(String roleName, String login) {
+    return addUserToRole(roleName, login, UserOrigin.SYSTEM);
+  }
+
+  public String addUserToRole(String roleName, String login, UserOrigin userOrigin) {
     Guard.checkNotEmpty(roleName);
     Guard.checkNotEmpty(login);
 
     RoleEntity role = this.getSystemRoleByName(roleName);
     UserEntity user = this.getUserByLogin(login);
 
-    UserRoleEntity userRole = this.addUser(user, role, null);
+    UserRoleEntity userRole = this.addUser(user, role, userOrigin, null);
     return userRole.getStatus();
   }
 
-  public void removeUserFromRole(String roleName, String login) {
+  public void removeUserFromRole(String roleName, String login, UserOrigin origin) {
     Guard.checkNotEmpty(roleName);
     Guard.checkNotEmpty(login);
 
@@ -155,6 +157,12 @@ public class PermissionManager {
 
   @Transactional
   public UserEntity registerUser(final String login, final String name, final Set<String> defaultRoles) {
+    return registerUser(login, name, UserOrigin.SYSTEM, defaultRoles);
+  }
+
+  @Transactional
+  public UserEntity registerUser(final String login, final String name, final UserOrigin userOrigin,
+                                 final Set<String> defaultRoles) {
     Guard.checkNotEmpty(login);
     
     UserEntity user = userRepository.findByLogin(login);
@@ -165,6 +173,7 @@ public class PermissionManager {
           nameToSet = login;
         }
         user.setName(nameToSet);
+        user.setOrigin(userOrigin);
         user = userRepository.save(user);
       }
       return user;
@@ -175,17 +184,18 @@ public class PermissionManager {
     user = new UserEntity();
     user.setLogin(login);
     user.setName(name);
+    user.setOrigin(userOrigin);
     user = userRepository.save(user);
     eventPublisher.publishEvent(new AddUserEvent(this, user.getId(), login));
 
     RoleEntity personalRole = this.addRole(login, false);
-    this.addUser(user, personalRole, null);
+    this.addUser(user, personalRole, userOrigin, null);
 
     if (defaultRoles != null) {
       for (String roleName: defaultRoles) {
         RoleEntity defaultRole = this.getSystemRoleByName(roleName);
         if (defaultRole != null) {
-          this.addUser(user, defaultRole, null);
+          this.addUser(user, defaultRole, userOrigin, null);
         }
       }
     }
@@ -193,7 +203,7 @@ public class PermissionManager {
     if (login.equals(ADMIN_LOGIN)) {
       RoleEntity role = this.getSystemRoleByName("admin");
       if (role != null)
-        this.addUser(user, role, null);
+        this.addUser(user, role, userOrigin, null);
     }
 
     user = userRepository.findOne(user.getId());
@@ -273,7 +283,7 @@ public class PermissionManager {
     UserEntity user = this.getUserById(userId);
     RoleEntity role = this.getRoleById(roleId);
 
-    this.addUser(user, role, null);
+    this.addUser(user, role, UserOrigin.SYSTEM, null);
   }
 
   public void removeUser(Long userId, Long roleId) {
@@ -420,13 +430,15 @@ public class PermissionManager {
     return relationStatus == null || relationStatus == RequestStatus.APPROVED;
   }
 
-  private UserRoleEntity addUser(final UserEntity user, final RoleEntity role, final String status) {
+  private UserRoleEntity addUser(final UserEntity user, final RoleEntity role,
+                                 final UserOrigin userOrigin, final String status) {
     UserRoleEntity relation = this.userRoleRepository.findByUserAndRole(user, role);
     if (relation == null) {
       relation = new UserRoleEntity();
       relation.setUser(user);
       relation.setRole(role);
       relation.setStatus(status);
+      relation.setOrigin(userOrigin);
       relation = this.userRoleRepository.save(relation);
     }
 

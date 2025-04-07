@@ -18,6 +18,9 @@ public abstract class AbstractAdminService {
     @Value("${sensitiveinfo.admin.role}")
     private String adminRole;
 
+    @Value("${sensitiveinfo.moderator.role}")
+    private String moderatorRole;
+
     @Value("${security.provider}")
     private String securityProvider;
 
@@ -29,6 +32,14 @@ public abstract class AbstractAdminService {
     }
 
     protected boolean isAdmin() {
+        return isInRole(this.adminRole);
+    }
+
+    protected boolean isModerator() {
+        return isInRole(this.moderatorRole);
+    }
+
+    private boolean isInRole(final String role) {
         if (!isSecured()) {
             return true;
         }
@@ -39,7 +50,7 @@ public abstract class AbstractAdminService {
                 return roles.stream().anyMatch(r -> Objects.nonNull(r.getName()) && r.getName().equals(adminRole));
             }
         } catch (Exception e) {
-            LOGGER.warn("Failed to check administrative rights, fallback to regular", e);
+            LOGGER.warn("Failed to check rights, fallback to regular", e);
         }
         return false;
     }

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -eux
 
-VERSION=2.1.0
-TAG=2.9.0-$VERSION-arm64
+
+VERSION=1.0.0
+TAG=2.14.0-$VERSION-arm64
 
 export REGISTRY_USERNAME=admin
 
