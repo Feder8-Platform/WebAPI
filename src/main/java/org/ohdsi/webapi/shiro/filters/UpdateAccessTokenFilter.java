@@ -18,7 +18,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.core.UriBuilder;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.PrincipalCollection;
@@ -68,7 +68,7 @@ public class UpdateAccessTokenFilter extends AdviceFilter {
     Object principal = principals.getPrimaryPrincipal();
     
     if (principal instanceof Pac4jPrincipal) {
-      login = ((Pac4jPrincipal)principal).getProfile().getUsername();
+      login = ((Pac4jPrincipal)principal).getProfile().getEmail();
       name = ((Pac4jPrincipal)principal).getProfile().getDisplayName();
       
       /**
@@ -145,8 +145,8 @@ public class UpdateAccessTokenFilter extends AdviceFilter {
     }
 
     request.setAttribute(TOKEN_ATTRIBUTE, jwt);
-    Collection<String> permissions = this.authorizer.getAuthorizationInfo(login).getStringPermissions();
-    request.setAttribute(PERMISSIONS_ATTRIBUTE, StringUtils.join(permissions, "|"));
+    PermissionManager.PermissionsDTO permissions = this.authorizer.queryUserPermissions(login);
+    request.setAttribute(PERMISSIONS_ATTRIBUTE, permissions);
     return true;
   }
 

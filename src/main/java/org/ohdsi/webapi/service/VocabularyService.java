@@ -3,6 +3,8 @@ package org.ohdsi.webapi.service;
 import static org.ohdsi.webapi.service.cscompare.ConceptSetCompareService.CONCEPT_SET_COMPARISON_ROW_MAPPER;
 import static org.ohdsi.webapi.util.SecurityUtils.whitelist;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -11,6 +13,8 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.cache.CacheManager;
+import javax.cache.configuration.MutableConfiguration;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -51,11 +55,13 @@ import org.ohdsi.webapi.source.Source;
 import org.ohdsi.webapi.source.SourceService;
 import org.ohdsi.webapi.source.SourceDaimon;
 import org.ohdsi.webapi.source.SourceInfo;
+import org.ohdsi.webapi.util.CacheHelper;
 import org.ohdsi.webapi.util.PreparedSqlRender;
 import org.ohdsi.webapi.util.PreparedStatementRenderer;
 import org.ohdsi.webapi.vocabulary.ConceptRecommendedNotInstalledException;
 import org.ohdsi.webapi.vocabulary.ConceptRelationship;
 import org.ohdsi.webapi.vocabulary.ConceptSearch;
+import org.ohdsi.webapi.vocabulary.ConceptSetCondenser;
 import org.ohdsi.webapi.vocabulary.DescendentOfAncestorSearch;
 import org.ohdsi.webapi.vocabulary.Domain;
 import org.ohdsi.webapi.vocabulary.RecommendedConcept;
@@ -66,11 +72,16 @@ import org.ohdsi.webapi.vocabulary.VocabularyInfo;
 import org.ohdsi.webapi.vocabulary.VocabularySearchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.cache.JCacheManagerCustomizer;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
+import org.ohdsi.webapi.vocabulary.MappedRelatedConcept;
 
  /**
   * Provides REST services for working with
@@ -82,7 +93,42 @@ import org.springframework.stereotype.Component;
 @Component
 public class VocabularyService extends AbstractDaoService {
 
-  private static Hashtable<String, VocabularyInfo> vocabularyInfoCache = null;
+	//create cache
+	@Component
+	public static class CachingSetup implements JCacheManagerCustomizer {
+
+		public static final String CONCEPT_DETAIL_CACHE = "conceptDetail";
+		public static final String CONCEPT_RELATED_CACHE = "conceptRelated";
+		public static final String CONCEPT_HIERARCHY_CACHE = "conceptHierarchy";
+
+		@Override
+		public void customize(CacheManager cacheManager) {
+			// due to unit tests causing application contexts to reload cache manager caches, we
+			// have to check for the existance of a cache before creating it
+			Set<String> cacheNames = CacheHelper.getCacheNames(cacheManager);
+			// Evict when a cohort definition is created or updated, or permissions, or tags
+			if (!cacheNames.contains(CONCEPT_DETAIL_CACHE)) {
+				cacheManager.createCache(CONCEPT_DETAIL_CACHE, new MutableConfiguration<String, Concept>()
+					.setTypes(String.class, Concept.class)
+					.setStoreByValue(false)
+					.setStatisticsEnabled(true));
+			}
+			if (!cacheNames.contains(CONCEPT_RELATED_CACHE)) {
+				cacheManager.createCache(CONCEPT_RELATED_CACHE, new MutableConfiguration<String, Collection<RelatedConcept>>()
+					.setTypes(String.class, (Class<Collection<RelatedConcept>>) (Class<?>) Collection.class)
+					.setStoreByValue(false)
+					.setStatisticsEnabled(true));
+			}
+			if (!cacheNames.contains(CONCEPT_HIERARCHY_CACHE)) {
+				cacheManager.createCache(CONCEPT_HIERARCHY_CACHE, new MutableConfiguration<String, Collection<RelatedConcept>>()
+					.setTypes(String.class, (Class<Collection<RelatedConcept>>) (Class<?>) Collection.class)
+					.setStoreByValue(false)
+					.setStatisticsEnabled(true));
+			}
+		}
+	}
+
+	private static Hashtable<String, VocabularyInfo> vocabularyInfoCache = null;
   public static final String DEFAULT_SEARCH_ROWS = "20000";
 
   @Autowired
@@ -96,7 +142,10 @@ public class VocabularyService extends AbstractDaoService {
 
   @Autowired
   private ConceptSetCompareService conceptSetCompareService;
-  
+
+  @Autowired
+  private ObjectMapper objectMapper;
+
   @Value("${datasource.driverClassName}")
   private String driver;
 
@@ -717,6 +766,7 @@ public class VocabularyService extends AbstractDaoService {
   @GET
   @Path("{sourceKey}/concept/{id}")
   @Produces(MediaType.APPLICATION_JSON)
+	@Cacheable(cacheNames = CachingSetup.CONCEPT_DETAIL_CACHE, key = "#sourceKey.concat('/').concat(#id)")
   public Concept getConcept(@PathParam("sourceKey") final String sourceKey, @PathParam("id") final long id) {
     Source source = getSourceRepository().findBySourceKey(sourceKey);
     String sqlPath = "/resources/vocabulary/sql/getConcept.sql";
@@ -768,6 +818,7 @@ public class VocabularyService extends AbstractDaoService {
   @GET
   @Path("{sourceKey}/concept/{id}/related")
   @Produces(MediaType.APPLICATION_JSON)
+	@Cacheable(cacheNames = CachingSetup.CONCEPT_RELATED_CACHE, key = "#sourceKey.concat('/').concat(#id)")
   public Collection<RelatedConcept> getRelatedConcepts(@PathParam("sourceKey") String sourceKey, @PathParam("id") final Long id) {
     final Map<Long, RelatedConcept> concepts = new HashMap<>();
     Source source = getSourceRepository().findBySourceKey(sourceKey);
@@ -783,7 +834,75 @@ public class VocabularyService extends AbstractDaoService {
     return concepts.values();
   }
 
-  /**
+   @POST
+   @Path("{sourceKey}/related-standard")
+   @Produces(MediaType.APPLICATION_JSON)
+   public Collection<MappedRelatedConcept> getRelatedStandardMappedConcepts(@PathParam("sourceKey") String sourceKey, List<Long> allConceptIds) {
+     Source source = getSourceRepository().findBySourceKey(sourceKey);
+     String relatedConceptsSQLPath = "/resources/vocabulary/sql/getRelatedStandardMappedConcepts.sql";
+     String relatedMappedFromIdsSQLPath = "/resources/vocabulary/sql/getRelatedStandardMappedConcepts_getMappedFromIds.sql";
+     String tableQualifier = source.getTableQualifier(SourceDaimon.DaimonType.Vocabulary);
+
+     String[] searchStrings = {"CDM_schema"};
+     String[] replacementStrings = {tableQualifier};
+
+     String[] varNames = {"conceptIdList"};
+
+     final Map<Long, MappedRelatedConcept> resultCombinedMappedConcepts = new HashMap<>();
+     final Map<Long, RelatedConcept> relatedStandardConcepts = new HashMap<>();
+     for(final List<Long> conceptIdsBatch: Lists.partition(allConceptIds, PreparedSqlRender.getParameterLimit(source))) {
+       Object[] varValues = {conceptIdsBatch.toArray()};
+       PreparedStatementRenderer relatedConceptsRenderer = new PreparedStatementRenderer(source, relatedConceptsSQLPath, searchStrings, replacementStrings, varNames, varValues);
+       getSourceJdbcTemplate(source).query(relatedConceptsRenderer.getSql(), relatedConceptsRenderer.getSetter(), (RowMapper<Void>) (resultSet, arg1) -> {
+         addRelationships(relatedStandardConcepts, resultSet);
+         return null;
+       });
+
+       final Map<Long, Set<Long>> relatedNonStandardConceptIdsByStandardId = new HashMap<>();
+
+       PreparedStatementRenderer mappedFromConceptsRenderer = new PreparedStatementRenderer(source, relatedMappedFromIdsSQLPath, searchStrings, replacementStrings, varNames, varValues);
+       getSourceJdbcTemplate(source).query(mappedFromConceptsRenderer.getSql(), mappedFromConceptsRenderer.getSetter(), (RowMapper<Void>) (resultSet, arg1) -> {
+         populateRelatedConceptIds(relatedNonStandardConceptIdsByStandardId, resultSet);
+         return null;
+       });
+
+       enrichResultCombinedMappedConcepts(resultCombinedMappedConcepts, relatedStandardConcepts, relatedNonStandardConceptIdsByStandardId);
+      }
+     return resultCombinedMappedConcepts.values();
+   }
+
+   private void populateRelatedConceptIds(final Map<Long, Set<Long>> mappedConceptsIds, final ResultSet resultSet) throws SQLException {
+     final Long concept_id = resultSet.getLong("CONCEPT_ID");
+     if (!mappedConceptsIds.containsKey(concept_id)) {
+       Set<Long> mappedIds = new HashSet<>();
+       mappedIds.add(resultSet.getLong("MAPPED_FROM_ID"));
+       mappedConceptsIds.put(concept_id,mappedIds);
+     } else {
+       mappedConceptsIds.get(concept_id).add(resultSet.getLong("MAPPED_FROM_ID"));
+     }
+   }
+
+   void enrichResultCombinedMappedConcepts(Map<Long, MappedRelatedConcept> resultCombinedMappedConcepts,
+                                           Map<Long, RelatedConcept> relatedStandardConcepts,
+                                           Map<Long, Set<Long>> relatedNonStandardConceptIdsByStandardId) {
+    relatedNonStandardConceptIdsByStandardId.forEach((standardConceptId, mappedFromIds)->{
+      if(resultCombinedMappedConcepts.containsKey(standardConceptId)){
+        resultCombinedMappedConcepts.get(standardConceptId).mappedFromIds.addAll(mappedFromIds);
+      } else {
+        MappedRelatedConcept mappedRelatedConcept;
+         try {
+           mappedRelatedConcept = objectMapper.readValue(objectMapper.writeValueAsString(relatedStandardConcepts.get(standardConceptId)), MappedRelatedConcept.class);
+           mappedRelatedConcept.mappedFromIds=mappedFromIds;
+           resultCombinedMappedConcepts.put(standardConceptId,mappedRelatedConcept);
+         } catch (JsonProcessingException e) {
+           log.error("Could not convert RelatedConcept to MappedRelatedConcept", e);
+           throw new WebApplicationException(e);
+         }
+      }
+    });
+   }
+
+   /**
    * Get ancestor and descendant concepts for the selected concept identifier 
    * from a source. 
    * 
@@ -795,6 +914,7 @@ public class VocabularyService extends AbstractDaoService {
   @GET
   @Path("{sourceKey}/concept/{id}/ancestorAndDescendant")
   @Produces(MediaType.APPLICATION_JSON)
+	@Cacheable(cacheNames = CachingSetup.CONCEPT_HIERARCHY_CACHE, key = "#sourceKey.concat('/').concat(#id)")
   public Collection<RelatedConcept> getConceptAncestorAndDescendant(@PathParam("sourceKey") String sourceKey, @PathParam("id") final Long id) {
     final Map<Long, RelatedConcept> concepts = new HashMap<>();
     Source source = getSourceRepository().findBySourceKey(sourceKey);
@@ -1211,10 +1331,20 @@ public class VocabularyService extends AbstractDaoService {
     return vocabularyInfoCache.get(sourceKey);
   }
 
+	@Caching(evict = {
+		@CacheEvict(value=CachingSetup.CONCEPT_DETAIL_CACHE, allEntries = true),
+		@CacheEvict(value=CachingSetup.CONCEPT_RELATED_CACHE, allEntries = true),
+		@CacheEvict(value=CachingSetup.CONCEPT_RELATED_CACHE, allEntries = true)
+	})
   public void clearVocabularyInfoCache() {
     vocabularyInfoCache = null;
   }
-  
+
+
+	public void clearCaches() {
+
+	}
+
   /**
    * Get the descendant concepts of the selected ancestor vocabulary and 
    * concept class for the selected sibling vocabulary and concept class. 
@@ -1544,6 +1674,29 @@ public class VocabularyService extends AbstractDaoService {
     return compareConceptSets(defaultSourceKey, conceptSetExpressionList);
   }
   
+
+  /**
+   * Optimizes a concept set expressions to find redundant concepts specified
+   * in a concept set expression.
+   *
+   * @summary Optimize concept set (default vocabulary)
+   * @param sourceKey The source containing the vocabulary
+   * @param conceptSetExpression The concept set expression to optimize
+   * @return A concept set optimization
+   */
+  @Path("optimize")
+  @POST
+  @Produces(MediaType.APPLICATION_JSON)
+  @Consumes(MediaType.APPLICATION_JSON)
+  public ConceptSetOptimizationResult optimizeConceptSet(ConceptSetExpression conceptSetExpression) throws Exception {
+    String defaultSourceKey = getDefaultVocabularySourceKey();
+
+    if (defaultSourceKey == null)
+      throw new WebApplicationException(new Exception("No vocabulary or cdm daimon was found in configured sources.  Search failed."), Response.Status.SERVICE_UNAVAILABLE); // http 503
+
+    return optimizeConceptSet(defaultSourceKey, conceptSetExpression);
+  }
+
   /**
    * Optimizes a concept set expressions to find redundant concepts specified
    * in a concept set expression for the selected source key.
@@ -1558,93 +1711,78 @@ public class VocabularyService extends AbstractDaoService {
   @Produces(MediaType.APPLICATION_JSON)
   @Consumes(MediaType.APPLICATION_JSON)
   public ConceptSetOptimizationResult optimizeConceptSet(@PathParam("sourceKey") String sourceKey, ConceptSetExpression conceptSetExpression) throws Exception {
+    // resolve the concept set to get included concepts
+    Collection<Long> includedConcepts = this.resolveConceptSetExpression(sourceKey, conceptSetExpression);
+    long[] includedConceptsArray = includedConcepts.stream().mapToLong(Long::longValue).toArray();
+
+    // perform vocabulary search to find ancestor/descendant concepts for the included concepts
     Source source = getSourceRepository().findBySourceKey(sourceKey);
     String tableQualifier = source.getTableQualifier(SourceDaimon.DaimonType.Vocabulary);
-    
-    // Get the optimization script
-    String sql_statement = ResourceHelper.GetResourceAsString("/resources/vocabulary/sql/optimizeConceptSet.sql");
-    
-    // Find all of the concepts that should be considered for optimization
-    // Create a hashtable to hold all of the contents of the ConceptSetExpression
-    // for use later
-    Hashtable<Integer, ConceptSetExpression.ConceptSetItem> allConceptSetItems = new Hashtable<>();
-    ArrayList<Integer> includedConcepts = new ArrayList<>();
-    ArrayList<Integer> descendantConcepts = new ArrayList<>();
-    ArrayList<Integer> allOtherConcepts = new ArrayList<>();
-    for(ConceptSetExpression.ConceptSetItem item : conceptSetExpression.items) {
-        allConceptSetItems.put(item.concept.conceptId.intValue(), item);
-        if (!item.isExcluded) {
-            includedConcepts.add(item.concept.conceptId.intValue());
-            if (item.includeDescendants) {
-                descendantConcepts.add(item.concept.conceptId.intValue());
-            }
-        } else {
-            allOtherConcepts.add(item.concept.conceptId.intValue());
-        }
-    }
-    
-    // If no descendant concepts are specified, initialize this field to use concept_id = 0 so the query will work properly
-    if (descendantConcepts.isEmpty())
-        descendantConcepts.add(0);
-    
+    String ancestorSql = ResourceHelper.GetResourceAsString("/resources/vocabulary/sql/calculateAncestors.sql");
     String allConceptsList = includedConcepts.stream().map(Object::toString).collect(Collectors.joining(", "));
-    String descendantConceptsList = descendantConcepts.stream().map(Object::toString).collect(Collectors.joining(", "));
-    
-    sql_statement = SqlRender.renderSql(sql_statement, new String[]{"allConcepts", "descendantConcepts", "cdm_database_schema"}, new String[]{allConceptsList, descendantConceptsList, tableQualifier});
-    sql_statement = SqlTranslate.translateSql(sql_statement, source.getSourceDialect());
 
-    // Execute the query to obtain a result set that contains the
-    // most optimized version of the concept set. Then, using these results,
-    // construct a new ConceptSetExpression object that only contains the
-    // concepts that were identified as optimal to achieve the same definition
-    ConceptSetOptimizationResult returnVal = new ConceptSetOptimizationResult();
-    ArrayList<ConceptSetExpression.ConceptSetItem> optimzedExpressionItems = new ArrayList<>();
-    ArrayList<ConceptSetExpression.ConceptSetItem> removedExpressionItems = new ArrayList<>();
-    List<Map<String, Object>> rows = getSourceJdbcTemplate(source).queryForList(sql_statement);
+    ancestorSql = SqlRender.renderSql(ancestorSql, new String[]{"ancestors", "CDM_schema"}, new String[]{allConceptsList, tableQualifier});
+    ancestorSql = SqlTranslate.translateSql(ancestorSql, source.getSourceDialect());
+    List<Map<String, Object>> rows = getSourceJdbcTemplate(source).queryForList(ancestorSql);
+
+    // the candidate concepts are all ancestors from the query, and we add any
+    // descendants in the result to the collection of CandidateConcepts
+    Map<Long, Collection<Long>> ancestorMap = new HashMap<>();
     for (Map rs : rows) {
-        Integer conceptId = Integer.parseInt(rs.get("concept_id").toString());
-        String removed = String.valueOf(rs.get("removed"));
-        ConceptSetExpression.ConceptSetItem csi = allConceptSetItems.get(conceptId);
-        if (removed.equals("0")) {
-            optimzedExpressionItems.add(csi);            
-        } else {
-            removedExpressionItems.add(csi);
-        }
+      final Long ancestorConceptId = Long.valueOf(rs.get("ancestor_id").toString());
+      ancestorMap.computeIfAbsent(ancestorConceptId,k -> new ArrayList<>())
+        .add(Long.valueOf(rs.get("descendant_id").toString()));
     }
-    // Re-add back the other concepts that are not considered
-    // as part of the optimizatin process
-    for(Integer conceptId : allOtherConcepts) {
-        ConceptSetExpression.ConceptSetItem csi = allConceptSetItems.get(conceptId);
-        optimzedExpressionItems.add(csi);
-    }
-    returnVal.optimizedConceptSet.items = optimzedExpressionItems.toArray(new ConceptSetExpression.ConceptSetItem[optimzedExpressionItems.size()]);
-    returnVal.removedConceptSet.items = removedExpressionItems.toArray(new ConceptSetExpression.ConceptSetItem[removedExpressionItems.size()]);
-    
-    return returnVal;
-  }
-  
-  /**
-   * Optimizes a concept set expressions to find redundant concepts specified
-   * in a concept set expression.
-   * 
-   * @summary Optimize concept set (default vocabulary)
-   * @param sourceKey The source containing the vocabulary
-   * @param conceptSetExpression The concept set expression to optimize
-   * @return A concept set optimization
-   */
-  @Path("optimize")
-  @POST
-  @Produces(MediaType.APPLICATION_JSON)
-  @Consumes(MediaType.APPLICATION_JSON)
-  public ConceptSetOptimizationResult optimizeConceptSet(ConceptSetExpression conceptSetExpression) throws Exception {
-    String defaultSourceKey = getDefaultVocabularySourceKey();
-    
-    if (defaultSourceKey == null)
-      throw new WebApplicationException(new Exception("No vocabulary or cdm daimon was found in configured sources.  Search failed."), Response.Status.SERVICE_UNAVAILABLE); // http 503      
 
-    return optimizeConceptSet(defaultSourceKey, conceptSetExpression);
+    // use conceptSetCondenser to optimize concept set
+    ArrayList<ConceptSetCondenser.CandidateConcept> candidateConcepts = new ArrayList<>();
+    for (Long candidateConcept : ancestorMap.keySet()){
+      long[] candidateDescendants = ancestorMap.get(candidateConcept).stream().mapToLong(Long::longValue).toArray();
+      candidateConcepts.add(new ConceptSetCondenser.CandidateConcept(candidateConcept, candidateDescendants));
+    }
+    ConceptSetCondenser.CandidateConcept[] candidateConceptsArray = candidateConcepts.toArray(new ConceptSetCondenser.CandidateConcept[0]);
+    ConceptSetCondenser condenser = new ConceptSetCondenser(includedConceptsArray, candidateConceptsArray);
+    condenser.condense();
+    ConceptSetCondenser.ConceptExpression[] conceptExpressionArray = condenser.getConceptSetExpression();
+
+    // convert condensed concept set to a ConceptSetExpression
+    // 1. get lookup of Concept objects from the conceptExpression[] and make a map
+    Collection<Concept> concepts = executeIdentifierLookup(source, Arrays.stream(conceptExpressionArray).mapToLong(ce -> ce.conceptId).toArray());
+    Map<Long, Concept> conceptMap = concepts.stream().collect(Collectors.toMap(obj -> obj.conceptId, obj -> obj));
+    
+    // 2. map conceptExpressionArray into an array of ConceptSetItem and put into the optimimized ConceptSetExpression.
+    ConceptSetExpression optimizedCSE = new ConceptSetExpression();
+    optimizedCSE.items = Arrays.stream(conceptExpressionArray)
+      .map((ce -> {
+        ConceptSetExpression.ConceptSetItem csi = new ConceptSetExpression.ConceptSetItem();
+        csi.concept = conceptMap.get(ce.conceptId);
+        csi.includeDescendants = ce.descendants;
+        csi.isExcluded = ce.exclude;
+        return csi;
+      })).toArray(ConceptSetExpression.ConceptSetItem[]::new);
+
+    // Create the result and return to client
+    // 1. The condensed concept set is the optimized results
+    ConceptSetOptimizationResult result = new ConceptSetOptimizationResult();
+    result.optimizedConceptSet = optimizedCSE;
+
+    // 2. the removed items are those concepts + options (from the conceptSetExpression input)
+    // that don't match any in the optimized result
+    ConceptSetExpression.ConceptSetItem[] removedCsi = Arrays.stream(conceptSetExpression.items)
+      .filter(ci ->
+        Arrays.stream(optimizedCSE.items)
+          .noneMatch(oci -> Objects.equals(ci.concept.conceptId, oci.concept.conceptId) &&
+            ci.includeDescendants == oci.includeDescendants &&
+            ci.isExcluded == oci.isExcluded)
+      ).toArray(ConceptSetExpression.ConceptSetItem[]::new);
+    ConceptSetExpression removedConceptSet = new ConceptSetExpression();
+    removedConceptSet.items = removedCsi;
+    result.removedConceptSet = removedConceptSet;
+    return result;
+
   }
   
+
   private String JoinArray(final long[] array) {
     String result = "";
 

@@ -47,7 +47,7 @@ public abstract class AbstractAdminService {
             UserEntity currentUser = permissionManager.getCurrentUser();
             if (Objects.nonNull(currentUser)) {
                 Set<RoleEntity> roles = permissionManager.getUserRoles(currentUser.getId());
-                return roles.stream().anyMatch(r -> Objects.nonNull(r.getName()) && r.getName().equals(adminRole));
+                return roles.stream().anyMatch(r -> Objects.nonNull(r.getName()) && r.getName().equalsIgnoreCase(role));
             }
         } catch (Exception e) {
             LOGGER.warn("Failed to check rights, fallback to regular", e);

@@ -1,10 +1,11 @@
 package org.ohdsi.webapi.shiro.management;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.buji.pac4j.filter.CallbackFilter;
 import io.buji.pac4j.filter.SecurityFilter;
 import io.buji.pac4j.realm.Pac4jRealm;
 import net.minidev.json.JSONArray;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.realm.Realm;
 import org.apache.shiro.realm.activedirectory.ActiveDirectoryRealm;
 import org.apache.shiro.realm.ldap.DefaultLdapRealm;
@@ -262,6 +263,9 @@ public class AtlasRegularSecurity extends AtlasSecurity {
     @Autowired
     private PermissionManager permissionManager;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     public AtlasRegularSecurity(EntityPermissionSchemaResolver permissionSchemaResolver) {
 
         super(permissionSchemaResolver);
@@ -296,7 +300,7 @@ public class AtlasRegularSecurity extends AtlasSecurity {
         }
 
         filters.put(SEND_TOKEN_IN_URL, new SendTokenInUrlFilter(this.oauthUiCallback));
-        filters.put(SEND_TOKEN_IN_HEADER, new SendTokenInHeaderFilter());
+        filters.put(SEND_TOKEN_IN_HEADER, new SendTokenInHeaderFilter(this.objectMapper));
 
         filters.put(RUN_AS, new RunAsFilter(userRepository));
 
@@ -432,7 +436,9 @@ public class AtlasRegularSecurity extends AtlasSecurity {
         }
 
         if (this.openidAuthEnabled) {
-            filterChainBuilder.addRestPath("/user/login/openid", FORCE_SESSION_CREATION, OIDC_AUTH, UPDATE_TOKEN, UPDATE_ATLAS_ROLE_FROM_TOKEN, SEND_TOKEN_IN_URL);
+            filterChainBuilder
+                    .addRestPath("/user/login/openid", FORCE_SESSION_CREATION, OIDC_AUTH, UPDATE_TOKEN, SEND_TOKEN_IN_URL)
+                    .addRestPath("/user/login/openidDirect", FORCE_SESSION_CREATION, OIDC_DIRECT_AUTH, UPDATE_TOKEN, SEND_TOKEN_IN_HEADER);
         }
 
         if (this.googleAuthEnabled) {
@@ -480,7 +486,7 @@ public class AtlasRegularSecurity extends AtlasSecurity {
                     .addPath("/user/login/samlForce", SSL, CORS, FORCE_SESSION_CREATION, SAML_AUTHC_FORCE, UPDATE_TOKEN, SEND_TOKEN_IN_URL)
                     .addPath("/user/saml/callback", SSL, HANDLE_SAML, UPDATE_TOKEN, SEND_TOKEN_IN_URL);
         }
-        
+
         setupProtectedPaths(filterChainBuilder);
 
         return filterChainBuilder.addRestPath("/**");

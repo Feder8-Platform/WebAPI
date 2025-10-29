@@ -44,6 +44,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authz.Permission;
+import org.apache.shiro.authz.permission.WildcardPermission;
+import org.apache.shiro.subject.Subject;
 
 @Service
 public class PermissionService {
@@ -63,6 +67,9 @@ public class PermissionService {
 
     @Value("#{!'${security.provider}'.equals('DisabledSecurity')}")
     private boolean securityEnabled;
+
+	@Value("${security.defaultGlobalReadPermissions}")
+	private boolean defaultGlobalReadPermissions;
 
     private ThreadLocal<ConcurrentHashMap<EntityType, ConcurrentHashMap<String, Set<RoleDTO>>>> permissionCache =
             ThreadLocal.withInitial(ConcurrentHashMap::new);
@@ -133,14 +140,14 @@ public class PermissionService {
 
     public Map<String, String> getPermissionTemplates(EntityPermissionSchema permissionSchema, AccessType accessType) {
 
-        switch (accessType) {
-            case WRITE:
-                return permissionSchema.getWritePermissions();
- 	    case READ:
-	        return permissionSchema.getReadPermissions();
-            default:
-                throw new UnsupportedOperationException();
-        }
+      switch (accessType) {
+        case WRITE:
+          return permissionSchema.getWritePermissions();
+        case READ:
+          return permissionSchema.getReadPermissions();
+        default:
+          throw new UnsupportedOperationException();
+      }
     }
 
     public List<RoleEntity> finaAllRolesHavingPermissions(List<String> permissions) {
@@ -178,6 +185,95 @@ public class PermissionService {
         return Objects.equals(owner.getLogin(), loggedInUsername);
     }
 
+    public List<Permission> getEntityPermissions(EntityType entityType, Number id, AccessType accessType) {
+        Set<String> permissionTemplates = getTemplatesForType(entityType, accessType).keySet();
+
+        List<Permission> permissions = permissionTemplates.stream()
+                .map(pt -> new WildcardPermission(getPermission(pt, id)))
+                .collect(Collectors.toList());
+        return permissions;
+    }
+
+    public boolean hasAccess(CommonEntity entity, AccessType accessType) {
+        boolean hasAccess = false;
+        if (securityEnabled && entity.getCreatedBy() != null) {
+            try {
+                Subject subject = SecurityUtils.getSubject();
+                String login = this.permissionManager.getSubjectName();
+                UserSimpleAuthorizationInfo authorizationInfo = this.permissionManager.getAuthorizationInfo(login);
+                if (Objects.equals(authorizationInfo.getUserId(), entity.getCreatedBy().getId())) {
+                    hasAccess = true; // the role is the one that created the artifact
+                } else {
+                    EntityType entityType = entityPermissionSchemaResolver.getEntityType(entity.getClass());
+                    List<Permission> permsToCheck = getEntityPermissions(entityType, entity.getId(), accessType);
+                    hasAccess = permsToCheck.stream().allMatch(p -> subject.isPermitted(p));
+                }
+            } catch (Exception e) {
+                logger.error("Error getting user roles and permissions", e);
+                throw new RuntimeException(e);
+            }
+        }
+        return hasAccess;
+    }
+
+    public boolean hasWriteAccess(CommonEntity entity) {
+        boolean hasAccess = false;
+        if (securityEnabled && entity.getCreatedBy() != null) {
+            try {
+                String login = this.permissionManager.getSubjectName();
+                UserSimpleAuthorizationInfo authorizationInfo = this.permissionManager.getAuthorizationInfo(login);
+                if (Objects.equals(authorizationInfo.getUserId(), entity.getCreatedBy().getId())) {
+                    hasAccess = true; // the role is the one that created the artifact
+                } else {
+                    EntityType entityType = entityPermissionSchemaResolver.getEntityType(entity.getClass());
+
+                    List<RoleDTO> roles = getRolesHavingPermissions(entityType, entity.getId());
+
+                    Collection<String> userRoles = authorizationInfo.getRoles();
+                    hasAccess = roles.stream()
+                            .anyMatch(r -> userRoles.stream()
+                            .anyMatch(re -> re.equals(r.getName())));
+                }
+            } catch (Exception e) {
+                logger.error("Error getting user roles and permissions", e);
+                throw new RuntimeException(e);
+            }
+        }
+        return hasAccess;
+    }
+
+    public boolean hasReadAccess(CommonEntity entity) {
+      return hasAccess(entity, AccessType.READ);
+    }
+
+    public void fillWriteAccess(CommonEntity entity, CommonEntityDTO entityDTO) {
+        if (securityEnabled && entity.getCreatedBy() != null) {
+            entityDTO.setHasWriteAccess(hasAccess(entity, AccessType.WRITE));
+        }
+    }
+
+    public void fillReadAccess(CommonEntity entity, CommonEntityDTO entityDTO) {
+        if (securityEnabled && entity.getCreatedBy() != null) {
+            entityDTO.setHasReadAccess(hasAccess(entity, AccessType.READ));
+        }
+    }
+    
+    public boolean isSecurityEnabled() {
+      return this.securityEnabled;
+    }
+
+		// Use this key for cache (asset lists) that may be associated to a user or shared across users.
+		public String getAssetListCacheKey() {
+			if (this.isSecurityEnabled() && !defaultGlobalReadPermissions)
+				return permissionManager.getSubjectName();
+			else
+				return "ALL_USERS";
+		}
+
+		// use this cache key when the cache is associated to a user
+		public String getSubjectCacheKey() {
+			return this.isSecurityEnabled() ? permissionManager.getSubjectName() : "ALL_USERS";
+		}
 
     public void preparePermissionCache(EntityType entityType, Set<String> permissionTemplates) {
         if (permissionCache.get().get(entityType) == null) {
@@ -250,74 +346,5 @@ public class PermissionService {
 
     public void clearPermissionCache() {
         this.permissionCache.set(new ConcurrentHashMap<>());
-    }
-
-    public boolean hasWriteAccess(CommonEntity entity) {
-        boolean hasAccess = false;
-        if (securityEnabled && entity.getCreatedBy() != null) {
-            try {
-                String login = this.permissionManager.getSubjectName();
-                UserSimpleAuthorizationInfo authorizationInfo = this.permissionManager.getAuthorizationInfo(login);
-                if (Objects.equals(authorizationInfo.getUserId(), entity.getCreatedBy().getId())) {
-                    hasAccess = true; // the role is the one that created the artifact
-                } else {
-                    EntityType entityType = entityPermissionSchemaResolver.getEntityType(entity.getClass());
-
-                    List<RoleDTO> roles = getRolesHavingPermissions(entityType, entity.getId());
-
-                    Collection<String> userRoles = authorizationInfo.getRoles();
-                    hasAccess = roles.stream()
-                            .anyMatch(r -> userRoles.stream()
-                            .anyMatch(re -> re.equals(r.getName())));
-                }
-            } catch (Exception e) {
-                logger.error("Error getting user roles and permissions", e);
-                throw new RuntimeException(e);
-            }
-        }
-        return hasAccess;
-    }
-
-
-    public boolean hasReadAccess(CommonEntity entity) {
-        boolean hasAccess = false;
-        if (securityEnabled && entity.getCreatedBy() != null) {
-            try {
-                String login = this.permissionManager.getSubjectName();
-                UserSimpleAuthorizationInfo authorizationInfo = this.permissionManager.getAuthorizationInfo(login);
-                if (Objects.equals(authorizationInfo.getUserId(), entity.getCreatedBy().getId())){
-		    hasAccess = true; // the role is the one that created the artifact
-		} else {
-                    EntityType entityType = entityPermissionSchemaResolver.getEntityType(entity.getClass());
-
-                    List<RoleDTO> roles = getRolesHavingReadPermissions(entityType, entity.getId());
-
-                    Collection<String> userRoles = authorizationInfo.getRoles();
-                    hasAccess = roles.stream()
-                            .anyMatch(r -> userRoles.stream()
-                                    .anyMatch(re -> re.equals(r.getName())));
-                }
-            } catch (Exception e) {
-                logger.error("Error getting user roles and permissions", e);
-                throw new RuntimeException(e);
-            }
-        }
-        return hasAccess;
-    }
-
-    public void fillWriteAccess(CommonEntity entity, CommonEntityDTO entityDTO) {
-        if (securityEnabled && entity.getCreatedBy() != null) {
-            entityDTO.setHasWriteAccess(hasWriteAccess(entity));
-        }
-    }
-
-    public void fillReadAccess(CommonEntity entity, CommonEntityDTO entityDTO) {
-        if (securityEnabled && entity.getCreatedBy() != null) {
-            entityDTO.setHasReadAccess(hasReadAccess(entity));
-        }
-    }
-    
-    public boolean isSecurityEnabled() {
-      return this.securityEnabled;
     }
 }

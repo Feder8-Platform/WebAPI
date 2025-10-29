@@ -2,7 +2,7 @@
 #set -eux
 
 VERSION=1.0.0
-TAG=2.14.0-$VERSION
+TAG=2.15.1-$VERSION
 
 REGISTRY=harbor.honeur.org
 REPOSITORY=honeur
