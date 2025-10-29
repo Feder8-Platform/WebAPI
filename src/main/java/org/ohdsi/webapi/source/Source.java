@@ -255,6 +255,14 @@ public class Source extends CommonEntity<Integer> implements Serializable {
     this.isCacheEnabled = isCacheEnabled;
   }
 
+  public boolean isCheckConnection() {
+    return checkConnection;
+  }
+
+  public void setCheckConnection(boolean checkConnection) {
+    this.checkConnection = checkConnection;
+  }
+
   @Override
   public boolean equals(Object o) {
 
