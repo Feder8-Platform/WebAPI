@@ -1,6 +1,6 @@
 # Feder8 WebAPI 
 
-The source code of Feder8 WebAPI is based on [OHDSI/WebAPI_v2.14.0](https://github.com/OHDSI/WebAPI/tree/v2.14.0) with some modifications to ensure the correct connection with feder8-studio (keycloak), making database connection, database url, database schema and security settings configurable, adding a healthcheck in Dockerfile and using correct path for WebAPI service:
+The source code of Feder8 WebAPI is based on [OHDSI/WebAPI_v2.15.1](https://github.com/OHDSI/WebAPI/tree/v2.15.1) with some modifications to ensure the correct connection with feder8-studio (keycloak), making database connection, database url, database schema and security settings configurable, adding a healthcheck in Dockerfile and using correct path for WebAPI service:
 
 - Dockerfile: healthcheck added and using java 11
     - line 1 to 8: golang image used for the healthcheck 

@@ -3,7 +3,7 @@ set -eux
 
 
 VERSION=1.0.0
-TAG=2.14.0-$VERSION-arm64
+TAG=2.15.1-$VERSION-arm64
 
 export REGISTRY_USERNAME=admin
 
